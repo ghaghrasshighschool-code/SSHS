@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="description" content="SS+2 High School Ghaghra - Digital study notes, revision materials and downloads for Classes 9th, 10th, 11th, and 12th">
+  
+  <title>SS+2 HIGH SCHOOL GHAGHRA - Study Notes</title>
+
+  <!-- Security Headers (Zero-Risk Policy) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; object-src 'self' blob:; frame-src 'self' blob:; connect-src 'self' blob: ws: wss:; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- PWA Manifest & Android Meta Tags -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SSHS Notes">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Offline Notification Banner -->
+    <div id="offlineBanner" class="offline-banner">
+      ⚡ Offline Mode • Viewing cached notes
+    </div>
+
+    <!-- App Header -->
+    <header class="app-header">
+      <!-- Main Home Header (Page 1) -->
+      <div id="mainHeader">
+        <h1 class="school-name">SS+2 HIGH SCHOOL GHAGHRA</h1>
+        <div class="school-sub">एस.एस. +2 उच्च विद्यालय घाघरा (गुमला)</div>
+        <div class="school-tagline">Academic Session 2025–2026 • e-Notes Portal</div>
+      </div>
+
+      <!-- Navigation Header for Class Notes (Page 2) -->
+      <div id="navBar" class="nav-bar" style="display: none;">
+        <button class="btn-back" onclick="goHome()">
+          <span>←</span> Back to Classes
+        </button>
+        <div class="page-title">SS+2 GHAGHRA</div>
+      </div>
+    </header>
+
+    <!-- ==============================================
+         PAGE 1: HOME SCREEN (DIAMOND 4-QUADRANT & POSTER)
+         ============================================== -->
+    <main id="homeScreen" class="screen active">
+
+      <!-- PWA Installation Prompt (Positioned Just Above Selecting Class) -->
+      <div id="pwaInstallPrompt" class="pwa-install-prompt">
+        <div class="pwa-prompt-content">
+          <div class="pwa-prompt-icon">📲</div>
+          <div class="pwa-prompt-text">
+            <div class="pwa-prompt-title">Install App on Your Phone</div>
+            <div class="pwa-prompt-desc">Read notes offline without internet connection</div>
+          </div>
+        </div>
+        <button id="pwaPromptBtn" class="btn-pwa-prompt" onclick="triggerPwaInstall()">
+          <span>⬇️</span> Install App
+        </button>
+      </div>
+
+      <!-- Diamond / Kite 4-Quadrant Selector Section -->
+      <section class="diamond-section">
+        <div class="selector-header-row">
+          <div class="selector-instruction">
+            <span>🎯</span> Select Your Class / कक्षा चुनें
+          </div>
+          <button class="install-pill-btn" onclick="triggerPwaInstall()" title="Install App on Phone">
+            📲 Install App
+          </button>
+        </div>
+
+        <div class="diamond-container">
+          <svg class="diamond-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <!-- Shadows and Gradients for Quadrants -->
+              <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.15"/>
+              </filter>
+            </defs>
+
+            <!-- Outer Diamond Background Frame -->
+            <polygon points="150,12 288,150 150,288 12,150" fill="#ffffff" stroke="#e2e8f0" stroke-width="4" filter="url(#shadow)"/>
+
+            <!-- Quadrant 1: 9th (Top-Left) -->
+            <g class="quadrant-group" onclick="selectClass('9th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 16,150 L 150,16 Z" fill="#059669">
+                <title>Class 9th Notes</title>
+              </path>
+              <text x="105" y="98" class="quadrant-label">9th</text>
+              <text x="105" y="116" class="quadrant-sublabel">CLASS</text>
+            </g>
+
+            <!-- Quadrant 2: 10th (Top-Right) -->
+            <g class="quadrant-group" onclick="selectClass('10th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 150,16 L 284,150 Z" fill="#2563eb">
+                <title>Class 10th Notes</title>
+              </path>
+              <text x="195" y="98" class="quadrant-label">10th</text>
+              <text x="195" y="116" class="quadrant-sublabel">CLASS</text>
+            </g>
+
+            <!-- Quadrant 3: 11th (Bottom-Left) -->
+            <g class="quadrant-group" onclick="selectClass('11th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 16,150 L 150,284 Z" fill="#d97706">
+                <title>Class 11th Notes</title>
+              </path>
+              <text x="105" y="194" class="quadrant-label">11th</text>
+              <text x="105" y="212" class="quadrant-sublabel">+2 ARTS/SCI</text>
+            </g>
+
+            <!-- Quadrant 4: 12th (Bottom-Right) -->
+            <g class="quadrant-group" onclick="selectClass('12th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 150,284 L 284,150 Z" fill="#7c3aed">
+                <title>Class 12th Notes</title>
+              </path>
+              <text x="195" y="194" class="quadrant-label">12th</text>
+              <text x="195" y="212" class="quadrant-sublabel">+2 BOARD</text>
+            </g>
+
+            <!-- Dividing Cross Lines -->
+            <line x1="150" y1="12" x2="150" y2="288" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+            <line x1="12" y1="150" x2="288" y2="150" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+
+            <!-- Center Gold Badge -->
+            <circle cx="150" cy="150" r="18" fill="#f59e0b" stroke="#ffffff" stroke-width="3"/>
+            <text x="150" y="154" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">SSHS</text>
+          </svg>
+        </div>
+
+        <!-- Quick Finger Tap Buttons for Mobile Accessibility -->
+        <div class="class-pill-grid">
+          <button class="class-pill-btn" onclick="selectClass('9th')">Class 9th</button>
+          <button class="class-pill-btn" onclick="selectClass('10th')">Class 10th</button>
+          <button class="class-pill-btn" onclick="selectClass('11th')">Class 11th</button>
+          <button class="class-pill-btn" onclick="selectClass('12th')">Class 12th</button>
+        </div>
+      </section>
+
+      <!-- Poster / Notice Board Section (as in reference sketch) -->
+      <section class="poster-section">
+        <div class="poster-header">
+          <div class="poster-title">
+            <span>📌</span> POSTER & NOTICES
+          </div>
+          <span class="poster-badge">LATEST UPDATES</span>
+        </div>
+
+        <!-- Dynamic Notice Cards -->
+        <div id="posterContainer" class="poster-cards">
+          <!-- Populated dynamically from js/data.js -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==============================================
+         PAGE 2: CLASS NOTES SCREEN (SUBJECTS & DOWNLOADS)
+         ============================================== -->
+    <main id="notesScreen" class="screen">
+
+      <!-- Class Header Banner -->
+      <div class="notes-header-card">
+        <h2 id="classHeading" class="notes-class-heading">9th notes -</h2>
+        <div id="classSubheading" class="notes-class-subheading">Select a subject to view or download chapters</div>
+      </div>
+
+      <!-- Real-time Search -->
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search chapters, topics, formulas...">
+      </div>
+
+      <!-- Subject Filter Pills -->
+      <div id="subjectFilters" class="subject-filter-bar">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Notes List (Numbered List as sketched in Page 2) -->
+      <div id="notesContainer" class="notes-list">
+        <!-- Populated dynamically from js/data.js -->
+      </div>
+
+    </main>
+
+    <!-- App Footer with Admin Portal Link -->
+    <footer class="app-footer">
+      <div>SS+2 HIGH SCHOOL GHAGHRA • E-LEARNING PORTAL</div>
+      <div style="font-size: 0.68rem; margin-top: 2px;">Offline study material for Classes 9th, 10th, 11th & 12th</div>
+      <a href="./admin.html" class="admin-portal-link">
+        🔐 Teacher / Admin Portal (Upload Notes)
+      </a>
+    </footer>
+
+  </div>
+
+  <!-- ==============================================
+       PDF VIEWER MODAL
+       ============================================== -->
+  <div id="pdfModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div id="modalTitle" class="modal-title">Study Note Viewer</div>
+        <button class="modal-close" onclick="closePdfViewer()" title="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <iframe id="modalFrame" class="pdf-frame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-downloads allow-forms" loading="lazy"></iframe>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action btn-view" onclick="closePdfViewer()">Close</button>
+        <a id="modalDownloadBtn" class="btn-action btn-download" href="#" download>
+          📥 Download PDF
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA Install Guide Modal (For browsers needing manual 3-dots action) -->
+  <div id="installGuideModal" class="modal-overlay">
+    <div class="modal-container pwa-guide-modal">
+      <div class="modal-header">
+        <div class="modal-title">📲 Install App on Android</div>
+        <button class="modal-close" onclick="closeInstallGuide()" title="Close">✕</button>
+      </div>
+      <div class="pwa-guide-body">
+        <div class="guide-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Open this portal in <strong>Google Chrome</strong> or your phone browser.</div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Tap the <strong>three dots (⋮)</strong> menu icon at the top-right corner of Chrome.</div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Tap <strong>"Install"</strong>. The SSHS Notes App icon will be added to your home screen!</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action btn-download w-full" onclick="closeInstallGuide()">Got It!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Pill -->
+  <div id="toast" class="toast">Notice message</div>
+
+  <!-- Scripts -->
+  <script src="./js/security.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/storage.js"></script>
+  <script src="./js/app.js"></script>
+  <script src="./js/sw-register.js"></script>
+
+</body>
+</html>
+
