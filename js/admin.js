@@ -1,17 +1,20 @@
-// Admin Controller for SS+2 High School Ghaghra Notes Portal
+// Admin Controller for SS+2 High School Ghaghra IT/ITeS Notes Portal
 // Enforces Zero-Risk Policies: SHA-256 Hashed PINs, Rate Limiting, File Magic Byte Verification & HTML Sanitization
+// Features: Smart Bulk Upload with Automatic Filename-Based Classification & Single-File Auto-Fill
 
 // Default PIN is 'admin123' (stored strictly as SHA-256 hash, never in cleartext)
 const DEFAULT_PIN_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB maximum file size
 
 let selectedFile = null;
+let bulkFilesQueue = [];
 
 // On Page Load
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   updateSubjectDropdown();
   setupDropzone();
+  setupBulkDropzone();
 });
 
 // ==============================================
@@ -127,10 +130,11 @@ function switchTab(tabId) {
   const activeContent = document.getElementById(tabId);
   if (activeContent) activeContent.classList.add('active');
 
-  const btnIndex = ['uploadTab', 'manageTab', 'noticesTab', 'exportTab'].indexOf(tabId);
+  const btnIndex = ['bulkUploadTab', 'gdriveTab', 'uploadTab', 'manageTab', 'noticesTab', 'exportTab'].indexOf(tabId);
   const buttons = document.querySelectorAll('.admin-tab-btn');
   if (buttons[btnIndex]) buttons[btnIndex].classList.add('active');
 
+  if (tabId === 'gdriveTab') loadGDriveTab();
   if (tabId === 'manageTab') renderManageTable();
   if (tabId === 'noticesTab') renderManageNotices();
 }
@@ -153,33 +157,38 @@ async function loadDashboardData() {
 
   const posters = getMergedPostersData();
 
-  document.getElementById('statTotalNotes').textContent = totalNotes;
-  document.getElementById('statSecNotes').textContent = secNotes;
-  document.getElementById('statHighNotes').textContent = highNotes;
-  document.getElementById('statNotices').textContent = posters.length;
+  const elTotal = document.getElementById('statTotalNotes');
+  const elSec = document.getElementById('statSecNotes');
+  const elHigh = document.getElementById('statHighNotes');
+  const elNotices = document.getElementById('statNotices');
+
+  if (elTotal) elTotal.textContent = totalNotes;
+  if (elSec) elSec.textContent = secNotes;
+  if (elHigh) elHigh.textContent = highNotes;
+  if (elNotices) elNotices.textContent = posters.length;
 }
 
 // ==============================================
-// 3. SUBJECT DROPDOWN & CUSTOM SUBJECTS
+// 3. SUBJECT / SECTION DROPDOWN
 // ==============================================
 function updateSubjectDropdown() {
   const classKey = document.getElementById('noteClass').value;
   const subjectSelect = document.getElementById('noteSubject');
   const classData = CLASSES_DATA[classKey];
 
-  if (!classData) return;
+  if (!classData || !subjectSelect) return;
 
   const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
 
   subjectSelect.innerHTML = classData.subjects.map(s => `
-    <option value="${esc(s.id)}" data-name="${esc(s.name)}" data-icon="${esc(s.icon || '📘')}" data-color="${esc(s.color || '#2563eb')}">
-      ${esc(s.icon || '📘')} ${esc(s.name)}
+    <option value="${esc(s.id)}" data-name="${esc(s.name)}" data-icon="${esc(s.icon || '💻')}" data-color="${esc(s.color || '#2563eb')}">
+      ${esc(s.name)}
     </option>
   `).join('');
 }
 
 function promptNewSubject() {
-  const name = prompt('Enter new subject name (e.g., Computer Science / कंप्यूटर विज्ञान):');
+  const name = prompt('Enter new IT section / topic name (e.g., Cyber Security / साइबर सुरक्षा):');
   if (!name || !name.trim()) return;
 
   const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
@@ -196,11 +205,246 @@ function promptNewSubject() {
   newOption.selected = true;
 
   subjectSelect.appendChild(newOption);
-  showToast(`Added subject: ${cleanName}`);
+  showToast(`Added section: ${cleanName}`);
 }
 
 // ==============================================
-// 4. SECURE FILE DROPZONE & VERIFICATION
+// 4. SMART BULK UPLOADER & AUTO-CATEGORIZATION
+// ==============================================
+function setupBulkDropzone() {
+  const bulkDropzone = document.getElementById('bulkDropzone');
+  if (!bulkDropzone) return;
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    bulkDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      bulkDropzone.style.borderColor = '#2563eb';
+      bulkDropzone.style.background = '#e0f2fe';
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    bulkDropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      bulkDropzone.style.borderColor = '#0284c7';
+      bulkDropzone.style.background = '#f0f9ff';
+    });
+  });
+
+  bulkDropzone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (dt.files && dt.files.length > 0) {
+      await processBulkFiles(Array.from(dt.files));
+    }
+  });
+}
+
+async function handleBulkFilesSelect(e) {
+  const files = Array.from(e.target.files);
+  await processBulkFiles(files);
+}
+
+async function processBulkFiles(files) {
+  const validFiles = [];
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      alert(`Skipping ${file.name}: Exceeds 30MB size limit.`);
+      continue;
+    }
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alert(`Skipping ${file.name}: Only PDF documents are permitted.`);
+      continue;
+    }
+    if (typeof Security !== 'undefined') {
+      const isRealPdf = await Security.verifyPdfMagicBytes(file);
+      if (!isRealPdf) {
+        alert(`Skipping ${file.name}: Invalid PDF header signature.`);
+        continue;
+      }
+    }
+
+    const auto = (typeof Security !== 'undefined' && Security.autoCategorize)
+      ? Security.autoCategorize(file.name)
+      : { classKey: '9th', categoryId: 'part-b', categoryName: 'Part B: IT Skills', cleanTitle: file.name, isSyllabus: false };
+
+    validFiles.push({
+      file: file,
+      name: file.name,
+      size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+      classKey: auto.classKey,
+      categoryId: auto.categoryId,
+      title: auto.cleanTitle,
+      isSyllabus: auto.isSyllabus
+    });
+  }
+
+  bulkFilesQueue = bulkFilesQueue.concat(validFiles);
+  renderBulkQueue();
+  if (validFiles.length > 0) {
+    showToast(`✨ Auto-categorized ${validFiles.length} file(s) into Class and Section!`);
+  }
+}
+
+function renderBulkQueue() {
+  const container = document.getElementById('bulkQueueContainer');
+  const tbody = document.getElementById('bulkQueueBody');
+  const countEl = document.getElementById('bulkCount');
+  const statusEl = document.getElementById('bulkStatusText');
+
+  if (bulkFilesQueue.length === 0) {
+    if (container) container.style.display = 'none';
+    return;
+  }
+
+  if (container) container.style.display = 'block';
+  if (countEl) countEl.textContent = bulkFilesQueue.length;
+  if (statusEl) statusEl.textContent = `Ready to upload ${bulkFilesQueue.length} files. Review or modify details below.`;
+
+  const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+
+  tbody.innerHTML = bulkFilesQueue.map((item, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td>
+        <div style="font-weight: 700; color: #1e293b;">${esc(item.name)}</div>
+        <div style="font-size: 0.72rem; color: #64748b;">${esc(item.size)}</div>
+      </td>
+      <td>
+        <select class="bulk-select-sm" onchange="updateQueueItemClass(${idx}, this.value)">
+          <option value="9th" ${item.classKey === '9th' ? 'selected' : ''}>Class 9th</option>
+          <option value="10th" ${item.classKey === '10th' ? 'selected' : ''}>Class 10th</option>
+          <option value="11th" ${item.classKey === '11th' ? 'selected' : ''}>Class 11th</option>
+          <option value="12th" ${item.classKey === '12th' ? 'selected' : ''}>Class 12th</option>
+        </select>
+      </td>
+      <td>
+        <select class="bulk-select-sm" onchange="updateQueueItemCategory(${idx}, this.value)">
+          <option value="syllabus" ${item.categoryId === 'syllabus' ? 'selected' : ''}>📋 Syllabus</option>
+          <option value="part-b" ${item.categoryId === 'part-b' ? 'selected' : ''}>💻 Part B: IT Skills</option>
+          <option value="part-a" ${item.categoryId === 'part-a' ? 'selected' : ''}>📖 Part A: Employability</option>
+          <option value="sample-papers" ${item.categoryId === 'sample-papers' ? 'selected' : ''}>📝 Model Papers</option>
+          <option value="practical" ${item.categoryId === 'practical' ? 'selected' : ''}>🔬 Practical</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" class="bulk-input-sm" value="${esc(item.title)}" onchange="updateQueueItemTitle(${idx}, this.value)">
+      </td>
+      <td class="text-right">
+        <button type="button" class="btn-icon delete" onclick="removeBulkQueueItem(${idx})" title="Remove file">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateQueueItemClass(idx, val) {
+  if (bulkFilesQueue[idx]) bulkFilesQueue[idx].classKey = val;
+}
+function updateQueueItemCategory(idx, val) {
+  if (bulkFilesQueue[idx]) {
+    bulkFilesQueue[idx].categoryId = val;
+    bulkFilesQueue[idx].isSyllabus = (val === 'syllabus');
+  }
+}
+function updateQueueItemTitle(idx, val) {
+  if (bulkFilesQueue[idx]) bulkFilesQueue[idx].title = val.trim();
+}
+function removeBulkQueueItem(idx) {
+  bulkFilesQueue.splice(idx, 1);
+  renderBulkQueue();
+}
+function clearBulkQueue() {
+  bulkFilesQueue = [];
+  const fileInput = document.getElementById('bulkPdfInput');
+  if (fileInput) fileInput.value = '';
+  renderBulkQueue();
+}
+
+async function executeBulkUpload() {
+  if (bulkFilesQueue.length === 0) return;
+
+  const btn = document.getElementById('btnConfirmBulkUpload');
+  const pBar = document.getElementById('bulkProgressBar');
+  const pFill = document.getElementById('bulkProgressFill');
+  const statusEl = document.getElementById('bulkStatusText');
+
+  btn.disabled = true;
+  if (pBar) pBar.style.display = 'block';
+
+  let successCount = 0;
+  const customNotes = getCustomNotes();
+
+  const categoryNames = {
+    'syllabus': '📋 Syllabus (पाठ्यक्रम)',
+    'part-b': '💻 Part B: IT Specific Skills',
+    'part-a': '📖 Part A: Employability Skills',
+    'sample-papers': '📝 Model Papers & Blueprint',
+    'practical': '🔬 Practical & Lab Manual'
+  };
+
+  const categoryColors = {
+    'syllabus': '#0284c7',
+    'part-b': '#2563eb',
+    'part-a': '#059669',
+    'sample-papers': '#d97706',
+    'practical': '#7c3aed'
+  };
+
+  const categoryIcons = {
+    'syllabus': '📋',
+    'part-b': '💻',
+    'part-a': '📖',
+    'sample-papers': '📝',
+    'practical': '🔬'
+  };
+
+  for (let i = 0; i < bulkFilesQueue.length; i++) {
+    const item = bulkFilesQueue[i];
+    statusEl.textContent = `Uploading ${i + 1} of ${bulkFilesQueue.length}: ${item.name}...`;
+    if (pFill) pFill.style.width = `${((i + 1) / bulkFilesQueue.length) * 100}%`;
+
+    const noteId = `bulk-${item.classKey}-${item.categoryId}-${Date.now()}-${i}`;
+    const safeFilename = (typeof Security !== 'undefined') ? Security.sanitizeFilename(item.file.name) : item.file.name;
+
+    // Save blob to IndexedDB
+    await savePdfBlob(noteId, item.file, safeFilename);
+
+    const newNote = {
+      id: noteId,
+      classKey: item.classKey,
+      subjectId: item.categoryId,
+      subjectName: categoryNames[item.categoryId] || 'IT/ITeS',
+      subjectIcon: categoryIcons[item.categoryId] || '💻',
+      subjectColor: categoryColors[item.categoryId] || '#2563eb',
+      title: item.title,
+      hindiTitle: item.title,
+      fileUrl: `./notes/${safeFilename}`,
+      fileSize: item.size,
+      pages: 15,
+      type: 'PDF',
+      uploadedAt: 'Just Now',
+      isNew: true,
+      isBlob: true,
+      isSyllabus: item.isSyllabus
+    };
+
+    customNotes.unshift(newNote);
+    successCount++;
+  }
+
+  saveCustomNotes(customNotes);
+
+  showToast(`🎉 Successfully uploaded & categorized ${successCount} IT/ITeS files!`);
+  bulkFilesQueue = [];
+  clearBulkQueue();
+  if (pBar) pBar.style.display = 'none';
+  btn.disabled = false;
+  loadDashboardData();
+  renderManageTable();
+}
+
+// ==============================================
+// 5. SINGLE FILE UPLOAD WITH AUTO-FILL
 // ==============================================
 function toggleSourceType(type) {
   const fileGroup = document.getElementById('fileUploadGroup');
@@ -221,7 +465,7 @@ async function handleFileSelect(e) {
 }
 
 function setupDropzone() {
-  const dropzone = document.querySelector('.file-dropzone');
+  const dropzone = document.getElementById('fileUploadGroup');
   if (!dropzone) return;
 
   ['dragenter', 'dragover'].forEach(eventName => {
@@ -278,18 +522,33 @@ async function processSelectedFile(file) {
   const safeFilename = (typeof Security !== 'undefined') ? Security.sanitizeFilename(file.name) : file.name;
   const preview = document.getElementById('fileNamePreview');
   const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-  preview.textContent = `Verified PDF: ${safeFilename} (${sizeMb} MB)`;
-  preview.style.color = '#059669';
-  preview.style.fontWeight = '700';
+  if (preview) {
+    preview.textContent = `Verified PDF: ${safeFilename} (${sizeMb} MB)`;
+    preview.style.color = '#059669';
+    preview.style.fontWeight = '700';
+  }
 
   // Auto-fill file size in form
-  document.getElementById('noteSize').value = `${sizeMb} MB`;
+  const sizeInput = document.getElementById('noteSize');
+  if (sizeInput) sizeInput.value = `${sizeMb} MB`;
 
-  // Auto-fill title if empty
-  const titleInput = document.getElementById('noteTitle');
-  if (!titleInput.value) {
-    const cleanName = safeFilename.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
-    titleInput.value = cleanName;
+  // 4. Instant Auto-Categorization on Single File Pick
+  if (typeof Security !== 'undefined' && typeof Security.autoCategorize === 'function') {
+    const auto = Security.autoCategorize(file.name);
+    const classSelect = document.getElementById('noteClass');
+    if (classSelect) {
+      classSelect.value = auto.classKey;
+      updateSubjectDropdown();
+    }
+    const subjSelect = document.getElementById('noteSubject');
+    if (subjSelect) {
+      subjSelect.value = auto.categoryId;
+    }
+    const titleInput = document.getElementById('noteTitle');
+    if (titleInput) {
+      titleInput.value = auto.cleanTitle;
+    }
+    showToast(`✨ Auto-detected: Class ${auto.classKey} • ${auto.categoryName}`);
   }
 }
 
@@ -305,9 +564,6 @@ function resetUploadForm() {
   }
 }
 
-// ==============================================
-// 5. NOTE UPLOAD HANDLER
-// ==============================================
 async function handleNoteUpload(e) {
   e.preventDefault();
   const submitBtn = document.getElementById('submitNoteBtn');
@@ -321,7 +577,7 @@ async function handleNoteUpload(e) {
 
     const subjectId = subjectSelect.value;
     const subjectName = selectedOption.getAttribute('data-name') || selectedOption.textContent.trim();
-    const subjectIcon = selectedOption.getAttribute('data-icon') || '📘';
+    const subjectIcon = selectedOption.getAttribute('data-icon') || '💻';
     const subjectColor = selectedOption.getAttribute('data-color') || '#2563eb';
 
     const rawTitle = document.getElementById('noteTitle').value.trim();
@@ -329,7 +585,7 @@ async function handleNoteUpload(e) {
 
     const title = (typeof Security !== 'undefined') ? Security.escapeHtml(rawTitle) : rawTitle;
     const hindiTitle = (typeof Security !== 'undefined') ? Security.escapeHtml(rawHindi) : rawHindi;
-    const pages = parseInt(document.getElementById('notePages').value, 10) || 10;
+    const pages = parseInt(document.getElementById('notePages').value, 10) || 12;
     const fileSize = document.getElementById('noteSize').value.trim() || '1.5 MB';
     const isNew = document.getElementById('noteIsNew').checked;
 
@@ -365,6 +621,8 @@ async function handleNoteUpload(e) {
       isBlob = false;
     }
 
+    const isSyllabus = (subjectId === 'syllabus' || (typeof Security !== 'undefined' && Security.autoCategorize(title).isSyllabus));
+
     const newNote = {
       id: noteId,
       classKey: classKey,
@@ -380,7 +638,8 @@ async function handleNoteUpload(e) {
       type: 'PDF',
       uploadedAt: 'Just Now',
       isNew: isNew,
-      isBlob: isBlob
+      isBlob: isBlob,
+      isSyllabus: isSyllabus
     };
 
     // Save to LocalStorage custom notes
@@ -421,23 +680,36 @@ async function renderManageTable() {
 
     mergedData[classKey].subjects.forEach(subject => {
       subject.notes.forEach(note => {
+        const isDrive = Boolean(note.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(note.fileUrl)));
         const isCustom = customIds.has(note.id);
         const safeUrl = sanitizeUrl(note.fileUrl);
+        const viewUrl = (isDrive && note.previewUrl) ? sanitizeUrl(note.previewUrl) : safeUrl;
+        const isSyl = note.isSyllabus || subject.id === 'syllabus';
+
+        let sourceBadge = '<span style="color:#64748b; font-weight:600;">Default</span>';
+        if (isDrive) {
+          sourceBadge = '<span class="note-badge-gdrive" style="font-size: 0.68rem; padding: 2px 6px;">☁️ Google Drive</span>';
+        } else if (isCustom) {
+          sourceBadge = '<span style="color:#059669; font-weight:700;">Uploaded</span>';
+        }
 
         rows.push(`
           <tr>
             <td><span class="class-tag class-tag-${esc(classKey)}">${esc(classKey)}</span></td>
             <td><strong>${esc(subject.name)}</strong></td>
             <td>
-              <div>${esc(note.title)}</div>
+              <div>
+                ${isSyl ? '<span class="note-badge-syllabus" style="font-size: 0.6rem; margin-right: 4px;">SYLLABUS</span>' : ''}
+                ${esc(note.title)}
+              </div>
               <div style="font-size: 0.72rem; color: #64748b;">${esc(note.hindiTitle)}</div>
             </td>
             <td>${esc(note.fileSize)} / ${esc(note.pages)}p</td>
-            <td>${isCustom ? '<span style="color:#059669; font-weight:700;">Uploaded</span>' : 'Default'}</td>
+            <td>${sourceBadge}</td>
             <td class="text-right">
               <div class="action-btns">
-                <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="View Note">👁️ View</a>
-                <button class="btn-icon delete" onclick="deleteNote('${esc(note.id)}', ${isCustom})" title="Delete Note">🗑️ Delete</button>
+                <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="View Note">👁️ View</a>
+                <button class="btn-icon delete" onclick="deleteNote('${esc(note.id)}', ${isCustom}, ${isDrive})" title="Delete Note">🗑️ Delete</button>
               </div>
             </td>
           </tr>
@@ -453,10 +725,19 @@ async function renderManageTable() {
   }
 }
 
-async function deleteNote(noteId, isCustom) {
-  if (!confirm('Are you sure you want to delete this study note?')) return;
+async function deleteNote(noteId, isCustom, isDrive = false) {
+  if (!confirm('Are you sure you want to delete this study note / syllabus?')) return;
 
-  if (isCustom) {
+  if (isDrive) {
+    if (typeof deleteDriveNote === 'function') {
+      deleteDriveNote(noteId);
+    }
+    const deleted = getDeletedNoteIds();
+    if (!deleted.includes(noteId)) {
+      deleted.push(noteId);
+      saveDeletedNoteIds(deleted);
+    }
+  } else if (isCustom) {
     let custom = getCustomNotes();
     custom = custom.filter(n => n.id !== noteId);
     saveCustomNotes(custom);
@@ -558,6 +839,7 @@ async function downloadUpdatedDataJs() {
   }
 
   const jsContent = `// Educational Notes Database for SS+2 High School Ghaghra
+// Subject: Information Technology (IT / ITeS) - Vocational Code 402/802
 // Generated via SSHS Admin Portal on ${new Date().toLocaleDateString()}
 
 const SCHOOL_CONFIG = ${JSON.stringify(SCHOOL_CONFIG, null, 2)};
@@ -594,7 +876,7 @@ async function downloadJsonBackup() {
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `sshs_backup_${Date.now()}.json`;
+  a.download = `sshs_it_backup_${Date.now()}.json`;
   a.click();
   showToast('📥 Backup JSON downloaded');
 }
@@ -609,6 +891,260 @@ function handleResetDefaults() {
   showToast('🔄 Reset to default data complete');
   loadDashboardData();
   renderManageTable();
+}
+
+// ==============================================
+// 9. GOOGLE DRIVE INTEGRATION & SYNC CONTROLLER
+// ==============================================
+function loadGDriveTab() {
+  if (typeof GDrive === 'undefined') return;
+  const config = GDrive.getConfig();
+
+  const scriptInput = document.getElementById('gdriveScriptUrl');
+  const folderInput = document.getElementById('gdriveFolderId');
+  const autoSyncInput = document.getElementById('gdriveAutoSync');
+  const sheetInput = document.getElementById('gdriveSheetUrl');
+  const statusBadge = document.getElementById('gdriveStatusBadge');
+  const statusText = document.getElementById('gdriveStatusText');
+  const lastSynced = document.getElementById('gdriveLastSynced');
+  const countEl = document.getElementById('gdriveNotesCount');
+
+  if (scriptInput) scriptInput.value = config.scriptUrl || '';
+  if (folderInput) folderInput.value = config.folderId || '';
+  if (autoSyncInput) autoSyncInput.checked = Boolean(config.autoSync);
+  if (sheetInput) sheetInput.value = config.sheetUrl || '';
+
+  const driveNotes = GDrive.getDriveNotes();
+  if (countEl) countEl.textContent = driveNotes.length;
+
+  if (config.lastSyncTime) {
+    const d = new Date(config.lastSyncTime);
+    if (lastSynced) lastSynced.textContent = d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } else {
+    if (lastSynced) lastSynced.textContent = 'Never';
+  }
+
+  if (config.scriptUrl) {
+    if (statusBadge) {
+      statusBadge.textContent = '🟢 Cloud Sync Active';
+      statusBadge.style.color = '#047857';
+      statusBadge.style.borderColor = '#6ee7b7';
+    }
+    if (statusText) statusText.innerHTML = '<strong style="color: #059669;">Connected to Google Apps Script Web App</strong>';
+  } else if (config.sheetUrl) {
+    if (statusBadge) {
+      statusBadge.textContent = '📊 Sheet Connected';
+      statusBadge.style.color = '#0284c7';
+      statusBadge.style.borderColor = '#7dd3fc';
+    }
+    if (statusText) statusText.innerHTML = '<strong style="color: #0284c7;">Connected to Google Sheet Catalog</strong>';
+  } else {
+    if (statusBadge) {
+      statusBadge.textContent = '⚪ Not Configured';
+      statusBadge.style.color = '#64748b';
+      statusBadge.style.borderColor = '#cbd5e1';
+    }
+    if (statusText) statusText.textContent = 'Enter Web App URL or paste links below to connect.';
+  }
+}
+
+async function handleSaveDriveConfig(e) {
+  e.preventDefault();
+  if (typeof GDrive === 'undefined') return;
+
+  const scriptUrl = (document.getElementById('gdriveScriptUrl').value || '').trim();
+  const folderId = (document.getElementById('gdriveFolderId').value || '').trim();
+  const autoSync = document.getElementById('gdriveAutoSync').checked;
+
+  GDrive.saveConfig({ scriptUrl, folderId, autoSync });
+  showToast('💾 Google Drive configuration saved!');
+  loadGDriveTab();
+
+  if (scriptUrl) {
+    await handleManualDriveSync();
+  }
+}
+
+async function handleManualDriveSync() {
+  if (typeof GDrive === 'undefined') return;
+  const config = GDrive.getConfig();
+
+  if (!config.scriptUrl) {
+    alert('Please enter and save your Google Apps Script Web App URL first.');
+    return;
+  }
+
+  const btn = document.getElementById('btnSyncDriveNow');
+  const origText = btn ? btn.innerHTML : 'Sync';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Syncing with Google Drive...';
+  }
+
+  try {
+    const result = await GDrive.syncFromAppsScript();
+    showToast(`☁️ Synced ${result.count} notes from Google Drive folder: "${result.folderName}"!`);
+    loadGDriveTab();
+    loadDashboardData();
+    renderManageTable();
+  } catch (err) {
+    console.error('[GDrive Sync Error]:', err);
+    alert(`Sync Failed: ${err.message}\n\nPlease check that your Web App URL is correct and deployed with "Who has access: Anyone".`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+  }
+}
+
+function handleClearDriveNotes() {
+  if (!confirm('Are you sure you want to remove all synced Google Drive notes from this device? (Files on Google Drive remain safe).')) return;
+  if (typeof clearAllDriveNotes === 'function') {
+    clearAllDriveNotes();
+  }
+  showToast('🗑️ Synced Google Drive notes cleared');
+  loadGDriveTab();
+  loadDashboardData();
+  renderManageTable();
+}
+
+async function handleSyncFromSheet(e) {
+  e.preventDefault();
+  if (typeof GDrive === 'undefined') return;
+
+  const sheetUrl = (document.getElementById('gdriveSheetUrl').value || '').trim();
+  if (!sheetUrl) {
+    alert('Please enter a Google Sheet URL or ID.');
+    return;
+  }
+
+  try {
+    const result = await GDrive.syncFromGoogleSheet(sheetUrl);
+    showToast(`📊 Successfully imported ${result.count} notes from Google Sheet!`);
+    loadGDriveTab();
+    loadDashboardData();
+    renderManageTable();
+  } catch (err) {
+    alert(`Sheet Import Failed: ${err.message}\n\nPlease ensure the Google Sheet is shared as "Anyone with the link can view".`);
+  }
+}
+
+function handleImportDirectDriveLinks(e) {
+  e.preventDefault();
+  if (typeof GDrive === 'undefined') return;
+
+  const text = (document.getElementById('gdriveLinksInput').value || '').trim();
+  const overrideClass = document.getElementById('gdriveOverrideClass').value || null;
+  const overrideSection = document.getElementById('gdriveOverrideSection').value || null;
+
+  if (!text) {
+    alert('Please paste at least one Google Drive link.');
+    return;
+  }
+
+  const added = GDrive.importLinks(text, overrideClass, overrideSection);
+  if (added.length === 0) {
+    alert('Could not find any valid Google Drive file links in the input. Ensure URLs are in standard Google Drive format.');
+    return;
+  }
+
+  document.getElementById('gdriveLinksInput').value = '';
+  showToast(`✅ Added ${added.length} Google Drive note(s) to portal!`);
+  loadGDriveTab();
+  loadDashboardData();
+  renderManageTable();
+}
+
+function toggleSetupGuide() {
+  const content = document.getElementById('setupGuideContent');
+  const icon = document.getElementById('guideToggleIcon');
+  if (!content) return;
+  const isHidden = content.style.display === 'none';
+  content.style.display = isHidden ? 'block' : 'none';
+  if (icon) icon.textContent = isHidden ? '▲' : '▼';
+}
+
+function copyAppsScriptCode() {
+  const code = `/**
+ * SS+2 HIGH SCHOOL GHAGHRA - GOOGLE DRIVE NOTES SYNC BACKEND
+ * Deploy as Web App -> Execute as: Me -> Who has access: Anyone
+ */
+var DEFAULT_FOLDER_ID = "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE";
+
+function doGet(e) {
+  try {
+    var folderId = (e && e.parameter && e.parameter.folderId) ? e.parameter.folderId : DEFAULT_FOLDER_ID;
+    if (!folderId || folderId === "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE") {
+      return createJsonResponse({ status: "error", message: "Folder ID not configured" });
+    }
+    var folder = DriveApp.getFolderById(folderId);
+    var notes = [];
+
+    // Recursive crawler for multi-level folders (DDEO, JSD, QUESTIONS, BOOKS, etc.)
+    function scanFolder(currentFolder, path) {
+      var files = currentFolder.getFiles();
+      while (files.hasNext()) {
+        var file = files.next();
+        var name = file.getName();
+        if (file.getMimeType() === "application/pdf" || name.toLowerCase().endsWith(".pdf")) {
+          notes.push({
+            id: file.getId(),
+            name: name,
+            folder: currentFolder.getName(),
+            folderPath: path,
+            size: formatBytes(file.getSize()),
+            updated: Utilities.formatDate(file.getLastUpdated(), "Asia/Kolkata", "dd MMM yyyy"),
+            downloadUrl: "https://drive.google.com/uc?export=download&id=" + file.getId(),
+            previewUrl: "https://drive.google.com/file/d/" + file.getId() + "/preview",
+            viewUrl: file.getUrl()
+          });
+        }
+      }
+
+      var subfolders = currentFolder.getFolders();
+      while (subfolders.hasNext()) {
+        var sub = subfolders.next();
+        var newPath = path ? (path + " / " + sub.getName()) : sub.getName();
+        scanFolder(sub, newPath);
+      }
+    }
+
+    scanFolder(folder, folder.getName());
+
+    return createJsonResponse({
+      status: "success",
+      folderName: folder.getName(),
+      totalFiles: notes.length,
+      syncedAt: Utilities.formatDate(new Date(), "Asia/Kolkata", "dd MMM yyyy, hh:mm a"),
+      files: notes
+    });
+  } catch (err) {
+    return createJsonResponse({ status: "error", message: err.toString() });
+  }
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "0 B";
+  var k = 1024;
+  var sizes = ["B", "KB", "MB", "GB"];
+  var i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function createJsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      showToast('📋 Google Apps Script code copied to clipboard!');
+    }).catch(() => {
+      prompt('Copy code below:', code);
+    });
+  } else {
+    prompt('Copy code below:', code);
+  }
 }
 
 // Toast helper
@@ -631,6 +1167,13 @@ if (typeof window !== 'undefined') {
   window.toggleSourceType = toggleSourceType;
   window.handleFileSelect = handleFileSelect;
   window.handleNoteUpload = handleNoteUpload;
+  window.handleBulkFilesSelect = handleBulkFilesSelect;
+  window.updateQueueItemClass = updateQueueItemClass;
+  window.updateQueueItemCategory = updateQueueItemCategory;
+  window.updateQueueItemTitle = updateQueueItemTitle;
+  window.removeBulkQueueItem = removeBulkQueueItem;
+  window.clearBulkQueue = clearBulkQueue;
+  window.executeBulkUpload = executeBulkUpload;
   window.renderManageTable = renderManageTable;
   window.deleteNote = deleteNote;
   window.handleAddNotice = handleAddNotice;
@@ -638,4 +1181,12 @@ if (typeof window !== 'undefined') {
   window.downloadUpdatedDataJs = downloadUpdatedDataJs;
   window.downloadJsonBackup = downloadJsonBackup;
   window.handleResetDefaults = handleResetDefaults;
+  window.loadGDriveTab = loadGDriveTab;
+  window.handleSaveDriveConfig = handleSaveDriveConfig;
+  window.handleManualDriveSync = handleManualDriveSync;
+  window.handleClearDriveNotes = handleClearDriveNotes;
+  window.handleSyncFromSheet = handleSyncFromSheet;
+  window.handleImportDirectDriveLinks = handleImportDirectDriveLinks;
+  window.toggleSetupGuide = toggleSetupGuide;
+  window.copyAppsScriptCode = copyAppsScriptCode;
 }

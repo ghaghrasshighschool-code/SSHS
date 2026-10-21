@@ -161,7 +161,56 @@ async function getMergedClassesData() {
     targetSubject.notes.unshift(customNote);
   }
 
+  // 3. Append Google Drive synced notes
+  try {
+    const driveNotes = (typeof GDrive !== 'undefined' && typeof GDrive.getDriveNotes === 'function')
+      ? GDrive.getDriveNotes()
+      : [];
+
+    for (const driveNote of driveNotes) {
+      if (deletedIds.has(driveNote.id)) continue;
+      const targetClass = merged[driveNote.classKey];
+      if (!targetClass) continue;
+
+      let targetSubject = targetClass.subjects.find(s => s.id === driveNote.subjectId);
+      if (!targetSubject) {
+        targetSubject = {
+          id: driveNote.subjectId,
+          name: driveNote.subjectName || driveNote.subjectId,
+          icon: driveNote.subjectIcon || (driveNote.isSyllabus ? '📋' : '💻'),
+          color: driveNote.subjectColor || '#0284c7',
+          notes: []
+        };
+        targetClass.subjects.push(targetSubject);
+      }
+
+      // Avoid duplicates
+      if (!targetSubject.notes.some(n => n.id === driveNote.id)) {
+        targetSubject.notes.unshift(driveNote);
+      }
+    }
+  } catch (gErr) {
+    console.warn('[Storage] Error merging Google Drive notes:', gErr);
+  }
+
   return merged;
+}
+
+// Delete a Google Drive note from local sync cache
+function deleteDriveNote(noteId) {
+  if (typeof GDrive === 'undefined') return false;
+  const notes = GDrive.getDriveNotes();
+  const filtered = notes.filter(n => n.id !== noteId);
+  GDrive.saveDriveNotes(filtered);
+  return true;
+}
+
+// Clear all Google Drive synced notes
+function clearAllDriveNotes() {
+  if (typeof GDrive === 'undefined') return false;
+  GDrive.saveDriveNotes([]);
+  GDrive.saveConfig({ lastSyncCount: 0 });
+  return true;
 }
 
 // Get merged posters
@@ -186,5 +235,7 @@ if (typeof window !== 'undefined') {
   window.saveDeletedNoteIds = saveDeletedNoteIds;
   window.getCustomPosters = getCustomPosters;
   window.saveCustomPosters = saveCustomPosters;
+  window.deleteDriveNote = deleteDriveNote;
+  window.clearAllDriveNotes = clearAllDriveNotes;
 }
 

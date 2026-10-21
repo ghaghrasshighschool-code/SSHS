@@ -132,6 +132,90 @@ const Security = {
     try {
       localStorage.removeItem(`sec_rl_${key}`);
     } catch (e) {}
+  },
+
+  // 7. Smart Automatic File Classification for IT/ITeS (Class 9-12 & Subject Sections)
+  // Supports both Filename and Google Drive Folder Context (DDEO, JSD, QUESTIONS, BOOKS, HTML NOTES, ExtraS, COMMON)
+  autoCategorize(filename, folderContext = '') {
+    if (!filename || typeof filename !== 'string') {
+      return { classKey: '9th', categoryId: 'part-b', categoryName: '💻 Part B: IT Specific Skills', cleanTitle: 'IT Study Notes', isSyllabus: false };
+    }
+    const name = filename.replace(/\.pdf$/i, '').trim();
+    const fContext = (typeof folderContext === 'string' ? folderContext : '').toLowerCase();
+    const s = (fContext + ' ' + name).toLowerCase();
+
+    // 1. Detect Class (12, 11, 10, then 9)
+    let classKey = '9th';
+    if (/(?:class|cl|std|grade)?[ _-]*12(?:th)?(?=[^0-9]|$)|xii(?=[^a-z]|$)/i.test(s)) {
+      classKey = '12th';
+    } else if (/(?:class|cl|std|grade)?[ _-]*11(?:th)?(?=[^0-9]|$)|xi(?=[^a-z]|$)/i.test(s)) {
+      classKey = '11th';
+    } else if (/(?:class|cl|std|grade)?[ _-]*10(?:th)?(?=[^0-9]|$)|x(?=[^a-z0-9]|$)/i.test(s)) {
+      classKey = '10th';
+    } else if (/(?:class|cl|std|grade)?[ _-]*9(?:th)?(?=[^0-9]|$)|ix(?=[^a-z]|$)/i.test(s)) {
+      classKey = '9th';
+    } else if (s.includes('jsd')) {
+      // Junior Software Developer (JSD - Code 802) is senior secondary (Classes 11 & 12)
+      classKey = '11th';
+    } else if (s.includes('ddeo')) {
+      // Domestic Data Entry Operator (DDEO - Code 402) is secondary (Classes 9 & 10)
+      classKey = '10th';
+    }
+
+    // 2. Detect Section / Category
+    let categoryId = 'part-b';
+    let categoryName = '💻 Part B: IT Specific Skills';
+    let isSyllabus = false;
+
+    if (/syllabus|curriculum|scheme|course|blueprint/i.test(s)) {
+      categoryId = 'syllabus';
+      categoryName = '📋 Syllabus (पाठ्यक्रम)';
+      isSyllabus = true;
+    } else if (/question|sample|model|paper|pyq|test|blueprint/i.test(s)) {
+      // Questions / Model Question Papers
+      categoryId = 'sample-papers';
+      categoryName = '📝 Model Papers & Blueprint';
+    } else if (/part[ _-]?a|employability|communication|self|green|entrepreneur/i.test(s)) {
+      categoryId = 'part-a';
+      categoryName = '📖 Part A: Employability Skills';
+    } else if (/practical|lab|manual|viva|project|extras/i.test(s)) {
+      categoryId = 'practical';
+      categoryName = '🔬 Practical & Lab Manual';
+    } else if (/html|book|textbook|ddeo|jsd/i.test(s)) {
+      categoryId = 'part-b';
+      categoryName = '💻 Part B: IT Specific Skills';
+    }
+
+    // 3. Format Clean Title
+    let clean = name
+      .replace(/(?:class|cl|std|grade)?[ _-]*(?:9|10|11|12)(?:th)?/gi, '')
+      .replace(/\b(?:9th|10th|11th|12th)\b/gi, '')
+      .replace(/\b(?:ix|x|xi|xii)\b/gi, '')
+      .replace(/\b(?:it|ites|it-ites)\b/gi, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Check if filename had very little info, enrich it from folder context
+    if (!clean || clean.length < 3) {
+      if (s.includes('html')) {
+        clean = `Class ${classKey} HTML & Web Applications Notes`;
+      } else if (s.includes('ddeo')) {
+        clean = `Class ${classKey} DDEO Vocational Study Material`;
+      } else if (s.includes('jsd')) {
+        clean = `Class ${classKey} JSD Vocational Study Material`;
+      } else {
+        clean = `Class ${classKey} IT/ITeS Study Notes`;
+      }
+    } else if (isSyllabus) {
+      clean = `Class ${classKey} IT/ITeS Official Syllabus (2025-26)`;
+    } else {
+      clean = clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    const isCommon = Boolean(s.includes('common') || s.includes('all classes'));
+
+    return { classKey, categoryId, categoryName, cleanTitle: clean, isSyllabus, isCommon };
   }
 };
 

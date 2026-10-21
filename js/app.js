@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderPosters();
   setupNetworkListeners();
   setupSearch();
+  checkGoogleDriveSync();
 });
 
 // Auto-reload data when user switches back to this tab (e.g. from Admin portal)
@@ -41,6 +42,26 @@ window.addEventListener('focus', async () => {
     renderNotes();
   }
 });
+
+// Auto-sync Google Drive notes in background if configured and online
+async function checkGoogleDriveSync() {
+  if (typeof GDrive === 'undefined' || !navigator.onLine) return;
+  const config = GDrive.getConfig();
+  if (!config.autoSync || !config.scriptUrl) return;
+
+  try {
+    const result = await GDrive.syncFromAppsScript();
+    if (result && result.count > 0) {
+      console.log('[GDrive] Background auto-sync pulled', result.count, 'notes');
+      await reloadAllData();
+      if (notesScreen && notesScreen.classList.contains('active')) {
+        renderNotes();
+      }
+    }
+  } catch (e) {
+    console.debug('[GDrive] Background auto-sync note:', e.message);
+  }
+}
 
 async function reloadAllData() {
   try {
@@ -105,7 +126,7 @@ async function selectClass(className) {
   if (searchInput) searchInput.value = '';
 
   const classData = sourceData[className];
-  if (classHeading) classHeading.textContent = `${classData.name} Notes -`;
+  if (classHeading) classHeading.textContent = `${classData.name} IT/ITeS Notes & Syllabus -`;
   if (classSubheading) classSubheading.textContent = `${classData.hindiName} • ${classData.description}`;
 
   renderSubjectFilters(classData);
@@ -208,20 +229,34 @@ function renderNotes() {
     return;
   }
 
+  // Priority Sort: Syllabus always placed at the very top
+  allNotes.sort((a, b) => {
+    const aSyl = (a.isSyllabus || a.subjectId === 'syllabus' || (a.id && a.id.includes('syl'))) ? 1 : 0;
+    const bSyl = (b.isSyllabus || b.subjectId === 'syllabus' || (b.id && b.id.includes('syl'))) ? 1 : 0;
+    return bSyl - aSyl;
+  });
+
   notesContainer.innerHTML = allNotes.map((n, idx) => {
+    const isDrive = Boolean(n.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(n.fileUrl)));
     const safeUrl = sanitizeUrl(n.fileUrl);
+    const safePreviewUrl = (isDrive && n.previewUrl) ? sanitizeUrl(n.previewUrl) : (isDrive && typeof GDrive !== 'undefined' ? GDrive.toEmbeddableUrl(safeUrl) : safeUrl);
+    const safeDriveUrl = (isDrive && n.driveViewUrl) ? sanitizeUrl(n.driveViewUrl) : (isDrive && typeof GDrive !== 'undefined' ? GDrive.getViewUrl(GDrive.extractId(safeUrl)) : '');
     const safeId = sanitizeFilename(n.id || `note-${idx}`);
+    const isSyl = n.isSyllabus || (n.subjectId === 'syllabus') || (n.id && n.id.includes('syl'));
     return `
-    <div class="note-card">
+    <div class="note-card ${isSyl ? 'syllabus-card' : ''} ${isDrive ? 'gdrive-card' : ''}">
       <div class="note-card-top">
         <div>
           <div style="font-size: 0.72rem; font-weight: 700; color: ${esc(n.subjectColor || '#2563eb')}; margin-bottom: 2px;">
-            ${esc(n.subjectIcon || '📘')} ${esc(n.subjectName)}
+            ${esc(n.subjectIcon || '💻')} ${esc(n.subjectName)}
           </div>
           <div class="note-title">${esc(n.title)}</div>
           <div class="note-hindi-title">${esc(n.hindiTitle)}</div>
         </div>
-        ${n.isNew ? '<span class="note-badge">NEW</span>' : ''}
+        <div class="badge-stack">
+          ${isDrive ? '<span class="note-badge-gdrive">☁️ DRIVE</span>' : ''}
+          ${isSyl ? '<span class="note-badge-syllabus">📋 OFFICIAL SYLLABUS</span>' : (n.isNew ? '<span class="note-badge">NEW</span>' : '')}
+        </div>
       </div>
 
       <div class="note-meta">
@@ -231,10 +266,10 @@ function renderNotes() {
       </div>
 
       <div class="note-actions">
-        <button class="btn-action btn-view" onclick="openPdfViewer('${safeUrl}', '${esc(n.title)}')">
+        <button class="btn-action btn-view" onclick="openPdfViewer('${safeUrl}', '${esc(n.title)}', '${safePreviewUrl}', '${safeDriveUrl}')">
           👁️ View Notes
         </button>
-        <a class="btn-action btn-download" href="${safeUrl}" download="${safeId}" onclick="trackDownload('${esc(n.title)}')">
+        <a class="btn-action btn-download" href="${safeUrl}" download="${safeId}" ${isDrive ? 'target="_blank" rel="noopener noreferrer"' : ''} onclick="trackDownload('${esc(n.title)}')">
           📥 Download
         </a>
       </div>
@@ -243,12 +278,17 @@ function renderNotes() {
 }
 
 // PDF Viewer Modal
-function openPdfViewer(url, title) {
+function openPdfViewer(url, title, customPreviewUrl = null, customDriveUrl = null) {
   const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
   const sanitizeFilename = (typeof Security !== 'undefined') ? Security.sanitizeFilename : (f => f);
-  const safeUrl = sanitizeUrl(url);
 
-  if (!safeUrl || safeUrl === 'about:blank') {
+  const isDrive = Boolean((typeof GDrive !== 'undefined') && (GDrive.isGoogleDriveUrl(url) || (customPreviewUrl && GDrive.isGoogleDriveUrl(customPreviewUrl))));
+  const targetEmbedUrl = customPreviewUrl || (isDrive && typeof GDrive !== 'undefined' ? GDrive.toEmbeddableUrl(url) : url);
+  const targetDownloadUrl = isDrive && typeof GDrive !== 'undefined' ? GDrive.toDirectDownloadUrl(url) : url;
+
+  const safeFrameUrl = sanitizeUrl(targetEmbedUrl);
+
+  if (!safeFrameUrl || safeFrameUrl === 'about:blank') {
     showToast('⚠️ Cannot open document: Invalid or dangerous file URL');
     return;
   }
@@ -257,13 +297,33 @@ function openPdfViewer(url, title) {
   const safeFilename = sanitizeFilename(title || 'Study_Notes');
 
   if (modalTitle) modalTitle.textContent = safeTitle;
-  if (modalFrame) modalFrame.src = safeUrl;
+  if (modalFrame) modalFrame.src = safeFrameUrl;
   if (modalDownloadBtn) {
-    modalDownloadBtn.href = safeUrl;
+    modalDownloadBtn.href = sanitizeUrl(targetDownloadUrl);
     modalDownloadBtn.setAttribute('download', safeFilename);
+    if (isDrive) {
+      modalDownloadBtn.setAttribute('target', '_blank');
+      modalDownloadBtn.setAttribute('rel', 'noopener noreferrer');
+    } else {
+      modalDownloadBtn.removeAttribute('target');
+      modalDownloadBtn.removeAttribute('rel');
+    }
   }
+
+  const modalDriveBtn = document.getElementById('modalDriveBtn');
+  if (modalDriveBtn) {
+    if (isDrive) {
+      const driveDirectLink = customDriveUrl || (typeof GDrive !== 'undefined' ? GDrive.getViewUrl(GDrive.extractId(url)) : url);
+      modalDriveBtn.href = sanitizeUrl(driveDirectLink);
+      modalDriveBtn.style.display = 'inline-flex';
+    } else {
+      modalDriveBtn.style.display = 'none';
+    }
+  }
+
   if (pdfModal) pdfModal.classList.add('active');
   document.body.style.overflow = 'hidden';
+}
 }
 
 function closePdfViewer() {

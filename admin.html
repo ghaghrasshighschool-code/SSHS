@@ -7,7 +7,7 @@
   <title>Admin Portal - SS+2 HIGH SCHOOL GHAGHRA</title>
 
   <!-- Security Headers (Zero-Risk Policy) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; object-src 'self' blob:; frame-src 'self' blob:; connect-src 'self' blob: ws: wss:; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.googleusercontent.com https://ssl.gstatic.com; font-src 'self'; object-src 'self' blob:; frame-src 'self' blob: https://drive.google.com https://docs.google.com; connect-src 'self' blob: ws: wss: https://script.google.com https://script.googleusercontent.com https://drive.google.com https://www.googleapis.com https://docs.google.com; base-uri 'self'; form-action 'self';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
@@ -94,8 +94,14 @@
 
       <!-- Navigation Tabs -->
       <nav class="admin-tabs">
-        <button class="admin-tab-btn active" onclick="switchTab('uploadTab')">
-          📤 Upload New Note
+        <button class="admin-tab-btn active" onclick="switchTab('bulkUploadTab')">
+          ⚡ Smart Bulk Upload
+        </button>
+        <button class="admin-tab-btn" onclick="switchTab('gdriveTab')">
+          ☁️ Google Drive Sync
+        </button>
+        <button class="admin-tab-btn" onclick="switchTab('uploadTab')">
+          📤 Single Upload
         </button>
         <button class="admin-tab-btn" onclick="switchTab('manageTab')">
           📚 Manage All Notes
@@ -108,15 +114,248 @@
         </button>
       </nav>
 
-      <!-- TAB 1: UPLOAD NOTE -->
-      <section id="uploadTab" class="tab-content active">
+      <!-- TAB 1: SMART BULK UPLOAD WITH AUTO-CATEGORIZATION -->
+      <section id="bulkUploadTab" class="tab-content active">
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">Upload Subject Note / Study Material</h3>
-              <p class="card-sub">Upload notes for Classes 9 to 12. Stored directly for students to view & download.</p>
+              <h3 class="card-title">⚡ Smart Bulk Upload (Automatic Categorization)</h3>
+              <p class="card-sub">Upload 1 or multiple IT/ITeS PDFs at once. The system automatically reads filenames, assigns Class (9th–12th) & Section (Syllabus, Part A, Part B, Model Papers), and generates clean titles!</p>
             </div>
-            <span class="badge-pill">PDF Upload</span>
+            <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">✨ Auto-Classifier Active</span>
+          </div>
+
+          <!-- Multi-file Dropzone -->
+          <div class="file-dropzone bulk-dropzone" id="bulkDropzone" onclick="document.getElementById('bulkPdfInput').click()">
+            <div class="dropzone-icon">📁</div>
+            <div class="dropzone-text">Click to choose multiple PDFs or drag & drop files here</div>
+            <div class="dropzone-file">Auto-detects names like <code>Class10_IT_Syllabus.pdf</code>, <code>Class9_IT_Unit1.pdf</code>, <code>12th_SamplePaper.pdf</code></div>
+            <div class="bulk-supported-badge">Upload 1 to 30 files in 1 click • Max 30MB per PDF</div>
+          </div>
+          <input type="file" id="bulkPdfInput" accept="application/pdf" multiple style="display: none;" onchange="handleBulkFilesSelect(event)">
+
+          <!-- Queue Review Table (Visible once files are chosen) -->
+          <div id="bulkQueueContainer" style="display: none; margin-top: 24px;">
+            <div class="bulk-queue-header">
+              <h4 id="bulkQueueTitle" style="font-size: 0.95rem; font-weight: 800; color: #1e3a8a;">
+                Files Detected & Auto-Categorized (<span id="bulkCount">0</span>)
+              </h4>
+              <button type="button" class="btn-secondary text-sm" onclick="clearBulkQueue()">✕ Clear Queue</button>
+            </div>
+
+            <div class="table-responsive" style="margin-top: 12px;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>File Name</th>
+                    <th>Auto-Class</th>
+                    <th>Auto-Section</th>
+                    <th>Clean Title (Editable)</th>
+                    <th class="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="bulkQueueBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="bulk-progress-bar" id="bulkProgressBar" style="display: none;">
+              <div class="bulk-progress-fill" id="bulkProgressFill"></div>
+            </div>
+
+            <div class="bulk-actions" style="margin-top: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div id="bulkStatusText" style="font-size: 0.85rem; color: #64748b; font-weight: 600;"></div>
+              <button type="button" id="btnConfirmBulkUpload" class="btn-primary" onclick="executeBulkUpload()" style="font-size: 0.92rem; padding: 12px 24px;">
+                🚀 Approve & Upload All Files
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: GOOGLE DRIVE DATA SOURCE & SYNC -->
+      <section id="gdriveTab" class="tab-content">
+        <!-- Status Card -->
+        <div class="card mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%); border: 1.5px solid #60a5fa;">
+          <div class="card-header" style="border-bottom: none; padding-bottom: 0;">
+            <div>
+              <span class="badge-pill" id="gdriveStatusBadge" style="background: #ffffff; color: #0369a1; font-weight: 800; border-color: #7dd3fc; margin-bottom: 6px; display: inline-block;">
+                ☁️ Google Drive Data Source
+              </span>
+              <h3 class="card-title" style="color: #0c4a6e; font-size: 1.25rem;">Live Cloud Sync with Google Drive</h3>
+              <p class="card-sub" style="color: #0369a1;">
+                Connect your school's Google Drive folder directly. Drop any PDF into Google Drive, and it automatically syncs to the student app for viewing and offline download!
+              </p>
+            </div>
+          </div>
+          <div style="padding: 16px 20px 20px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+            <div style="font-size: 0.88rem; color: #0f172a;">
+              <div><strong>Sync Status:</strong> <span id="gdriveStatusText">Not configured yet</span></div>
+              <div style="margin-top: 4px; color: #475569; font-size: 0.8rem;">
+                Last Synced: <span id="gdriveLastSynced">Never</span> • <span id="gdriveNotesCount">0</span> Drive notes active
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn-secondary text-sm" onclick="handleClearDriveNotes()">
+                🗑️ Clear Synced Notes
+              </button>
+              <button type="button" id="btnSyncDriveNow" class="btn-primary text-sm" onclick="handleManualDriveSync()" style="background: #0284c7;">
+                🔄 Sync Drive Notes Now
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Modes in Grid / Cards -->
+        <div class="grid-2col" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+
+          <!-- Mode 1: Automated Google Apps Script Sync -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h4 class="card-title" style="font-size: 1.05rem;">Option 1: Live Drive Folder Sync (Recommended)</h4>
+                <p class="card-sub">Automatic 2-way sync using a lightweight, free Google Apps Script.</p>
+              </div>
+              <span class="badge-pill" style="background: #eff6ff; color: #1d4ed8;">⚡ Full Auto</span>
+            </div>
+
+            <form id="gdriveConfigForm" onsubmit="handleSaveDriveConfig(event)">
+              <div class="form-group">
+                <label class="form-label" for="gdriveScriptUrl">Google Apps Script Web App URL</label>
+                <input type="url" id="gdriveScriptUrl" class="form-input text-sm" placeholder="https://script.google.com/macros/s/.../exec">
+                <div class="form-hint">Deployed Web App URL from your Google Apps Script project.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="gdriveFolderId">Google Drive Folder ID (Optional)</label>
+                <input type="text" id="gdriveFolderId" class="form-input text-sm" placeholder="e.g. 1A2b3C4d5E6f_GhIjKlMnOpQrStUvWxYz">
+                <div class="form-hint">Leave blank if the Folder ID is already configured in the script.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: #1e293b;">
+                  <input type="checkbox" id="gdriveAutoSync" checked style="width: 18px; height: 18px; accent-color: #2563eb;">
+                  <span>Auto-sync when students open the app online</span>
+                </label>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 14px;">
+                <button type="submit" class="btn-primary w-full text-sm">
+                  💾 Save & Test Connection
+                </button>
+              </div>
+            </form>
+
+            <!-- Collapsible 2-Minute Setup Guide -->
+            <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+              <button type="button" class="btn-secondary w-full text-sm" onclick="toggleSetupGuide()" style="justify-content: space-between;">
+                <span>📖 2-Minute Setup Instructions</span>
+                <span id="guideToggleIcon">▼</span>
+              </button>
+
+              <div id="setupGuideContent" style="display: none; margin-top: 14px; font-size: 0.84rem; color: #334155; line-height: 1.5;">
+                <ol style="padding-left: 18px; margin: 0 0 12px;">
+                  <li style="margin-bottom: 6px;">Open <a href="https://script.google.com" target="_blank" rel="noopener" style="color: #2563eb; font-weight: 700; text-decoration: underline;">Google Apps Script</a> and click <strong>"+ New project"</strong>.</li>
+                  <li style="margin-bottom: 6px;">Delete all code and paste the turnkey script below.</li>
+                  <li style="margin-bottom: 6px;">Replace <code>YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE</code> with your Google Drive Folder ID.</li>
+                  <li style="margin-bottom: 6px;">Click <strong>Deploy &gt; New deployment &gt; Web app</strong>.</li>
+                  <li style="margin-bottom: 6px;">Set <em>Execute as: Me</em>, and <em>Who has access: Anyone</em>.</li>
+                  <li style="margin-bottom: 6px;">Click <strong>Deploy</strong> and copy the Web app URL into the box above!</li>
+                </ol>
+                <button type="button" class="btn-secondary text-xs w-full" onclick="copyAppsScriptCode()">
+                  📋 Copy Google Apps Script Code
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode 2 & 3: Google Sheets & Direct Links -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- Direct Links Quick Importer -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h4 class="card-title" style="font-size: 1.05rem;">Option 2: Direct Drive Links Importer</h4>
+                  <p class="card-sub">Paste one or multiple Google Drive share links for instant addition.</p>
+                </div>
+                <span class="badge-pill" style="background: #fef3c7; color: #92400e;">⚡ Quick Paste</span>
+              </div>
+
+              <form id="gdriveLinksForm" onsubmit="handleImportDirectDriveLinks(event)">
+                <div class="form-group">
+                  <label class="form-label" for="gdriveLinksInput">Google Drive Links (1 per line)</label>
+                  <textarea id="gdriveLinksInput" class="form-input text-sm" rows="3" placeholder="https://drive.google.com/file/d/1A2b3C.../view?usp=sharing&#10;Class10 IT Syllabus - https://drive.google.com/file/d/1XyZ.../view"></textarea>
+                  <div class="form-hint">Tip: You can optionally prepend a title before a dash: <code>Title - https://drive...</code></div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="gdriveOverrideClass">Target Class (Optional)</label>
+                    <select id="gdriveOverrideClass" class="form-select text-sm">
+                      <option value="">Auto-Detect from Title</option>
+                      <option value="9th">Class 9th</option>
+                      <option value="10th">Class 10th</option>
+                      <option value="11th">Class 11th</option>
+                      <option value="12th">Class 12th</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="gdriveOverrideSection">Target Section (Optional)</label>
+                    <select id="gdriveOverrideSection" class="form-select text-sm">
+                      <option value="">Auto-Detect Category</option>
+                      <option value="syllabus">📋 Syllabus & Blueprint</option>
+                      <option value="part-b">💻 Part B: IT Specific Skills</option>
+                      <option value="part-a">🌱 Part A: Employability Skills</option>
+                      <option value="sample-papers">📝 Model Question Papers</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn-primary w-full text-sm mt-2">
+                  ➕ Add Drive Links to Notes Portal
+                </button>
+              </form>
+            </div>
+
+            <!-- Google Sheet Catalog Sync -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h4 class="card-title" style="font-size: 1.05rem;">Option 3: Google Sheets Spreadsheet Catalog</h4>
+                  <p class="card-sub">Maintain notes in a shared Google Sheet (Class, Section, Title, Link).</p>
+                </div>
+                <span class="badge-pill" style="background: #f1f5f9; color: #334155;">📊 Spreadsheet</span>
+              </div>
+
+              <form id="gdriveSheetForm" onsubmit="handleSyncFromSheet(event)">
+                <div class="form-group">
+                  <label class="form-label" for="gdriveSheetUrl">Google Sheet Share Link or ID</label>
+                  <input type="text" id="gdriveSheetUrl" class="form-input text-sm" placeholder="https://docs.google.com/spreadsheets/d/.../edit?usp=sharing">
+                  <div class="form-hint">Sheet must have sharing set to "Anyone with the link can view".</div>
+                </div>
+                <button type="submit" class="btn-secondary w-full text-sm">
+                  📥 Sync from Google Sheet
+                </button>
+              </form>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: SINGLE UPLOAD NOTE (WITH AUTO-FILL) -->
+      <section id="uploadTab" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Single Note / Syllabus Upload (With Auto-Fill)</h3>
+              <p class="card-sub">Upload an individual IT/ITeS document. Selecting a PDF automatically fills Class, Section and Title.</p>
+            </div>
+            <span class="badge-pill">Single File</span>
           </div>
 
           <form id="uploadNoteForm" onsubmit="handleNoteUpload(event)">
@@ -395,6 +634,7 @@
   <!-- Scripts -->
   <script src="./js/security.js"></script>
   <script src="./js/data.js"></script>
+  <script src="./js/gdrive.js"></script>
   <script src="./js/storage.js"></script>
   <script src="./js/admin.js"></script>
 </body>

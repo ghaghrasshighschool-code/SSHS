@@ -9,7 +9,7 @@
   <title>SS+2 HIGH SCHOOL GHAGHRA - Study Notes</title>
 
   <!-- Security Headers (Zero-Risk Policy) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; object-src 'self' blob:; frame-src 'self' blob:; connect-src 'self' blob: ws: wss:; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.googleusercontent.com https://ssl.gstatic.com; font-src 'self'; object-src 'self' blob:; frame-src 'self' blob: https://drive.google.com https://docs.google.com; connect-src 'self' blob: ws: wss: https://script.google.com https://script.googleusercontent.com https://drive.google.com https://www.googleapis.com https://docs.google.com; base-uri 'self'; form-action 'self';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
@@ -39,7 +39,7 @@
       <div id="mainHeader">
         <h1 class="school-name">SS+2 HIGH SCHOOL GHAGHRA</h1>
         <div class="school-sub">एस.एस. +2 उच्च विद्यालय घाघरा (गुमला)</div>
-        <div class="school-tagline">Academic Session 2025–2026 • e-Notes Portal</div>
+        <div class="school-tagline">IT / ITeS (Vocational Code 402/802) • Syllabus & Notes Portal</div>
       </div>
 
       <!-- Navigation Header for Class Notes (Page 2) -->
@@ -172,8 +172,8 @@
 
       <!-- Class Header Banner -->
       <div class="notes-header-card">
-        <h2 id="classHeading" class="notes-class-heading">9th notes -</h2>
-        <div id="classSubheading" class="notes-class-subheading">Select a subject to view or download chapters</div>
+        <h2 id="classHeading" class="notes-class-heading">9th IT Notes & Syllabus -</h2>
+        <div id="classSubheading" class="notes-class-subheading">Official Curriculum, Syllabus, Employability & IT Subject Skills</div>
       </div>
 
       <!-- Real-time Search -->
@@ -219,6 +219,9 @@
       </div>
       <div class="modal-footer">
         <button class="btn-action btn-view" onclick="closePdfViewer()">Close</button>
+        <a id="modalDriveBtn" class="btn-action btn-drive" href="#" target="_blank" rel="noopener noreferrer" style="display: none;">
+          ☁️ Open in Drive
+        </a>
         <a id="modalDownloadBtn" class="btn-action btn-download" href="#" download>
           📥 Download PDF
         </a>
@@ -263,6 +266,7 @@
   <!-- Scripts -->
   <script src="./js/security.js"></script>
   <script src="./js/data.js"></script>
+  <script src="./js/gdrive.js"></script>
   <script src="./js/storage.js"></script>
   <script src="./js/app.js"></script>
   <script src="./js/sw-register.js"></script>
