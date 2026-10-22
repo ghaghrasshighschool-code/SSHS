@@ -28,7 +28,7 @@ function doGet(e) {
   try {
     var folderId = (e && e.parameter && e.parameter.folderId) ? e.parameter.folderId : DEFAULT_FOLDER_ID;
 
-    if (!folderId || folderId === "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE") {
+    if (!folderId || folderId === "1bs-B8-2p1-Lw5Xu4MZe_2lkWJN2bLAda") {
       return createJsonResponse({
         status: "error",
         message: "No valid folder ID provided. Please set DEFAULT_FOLDER_ID in the script or pass ?folderId=..."

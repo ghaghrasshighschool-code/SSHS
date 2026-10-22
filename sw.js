@@ -1,5 +1,5 @@
 // Service Worker for SS+2 High School Ghaghra Notes App
-const CACHE_NAME = 'sshs-notes-v5';
+const CACHE_NAME = 'sshs-notes-v6';
 const STATIC_ASSETS = [
   './',
   './index.html',

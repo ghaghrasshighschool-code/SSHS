@@ -1,11 +1,17 @@
 // Application Controller for SS+2 High School Ghaghra Notes App
 
+let currentMode = 'folder'; // 'folder' (primary Google Drive folder headers) | 'class' (secondary)
+let currentFolderCategory = 'DDEO';
+let currentSubFolder = 'all';
 let currentClass = '9th';
 let currentSubject = 'all';
 let currentSearch = '';
 let appClassesData = (typeof window !== 'undefined' && window.CLASSES_DATA) 
   ? window.CLASSES_DATA 
   : (typeof CLASSES_DATA !== 'undefined' ? CLASSES_DATA : {});
+let appFolderData = (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG)
+  ? window.FOLDER_CATEGORIES_CONFIG
+  : (typeof FOLDER_CATEGORIES_CONFIG !== 'undefined' ? FOLDER_CATEGORIES_CONFIG : {});
 const currentNotesMap = new Map();
 
 // DOM Elements
@@ -15,6 +21,7 @@ const navBar = document.getElementById('navBar');
 const mainHeader = document.getElementById('mainHeader');
 const offlineBanner = document.getElementById('offlineBanner');
 const posterContainer = document.getElementById('posterContainer');
+const folderCategoriesContainer = document.getElementById('folderCategoriesContainer');
 const notesContainer = document.getElementById('notesContainer');
 const subjectFilters = document.getElementById('subjectFilters');
 const searchInput = document.getElementById('searchInput');
@@ -29,6 +36,7 @@ const toast = document.getElementById('toast');
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
   await reloadAllData();
+  renderFolderCategories();
   renderPosters();
   setupNetworkListeners();
   setupSearch();
@@ -38,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Auto-reload data when user switches back to this tab (e.g. from Admin portal)
 window.addEventListener('focus', async () => {
   await reloadAllData();
+  renderFolderCategories();
   renderPosters();
   if (notesScreen && notesScreen.classList.contains('active')) {
     renderNotes();
@@ -55,6 +64,7 @@ async function checkGoogleDriveSync() {
     if (result && result.count > 0) {
       console.log('[GDrive] Background auto-sync pulled', result.count, 'notes');
       await reloadAllData();
+      renderFolderCategories();
       if (notesScreen && notesScreen.classList.contains('active')) {
         renderNotes();
       }
@@ -73,12 +83,74 @@ async function reloadAllData() {
     } else if (typeof CLASSES_DATA !== 'undefined') {
       appClassesData = CLASSES_DATA;
     }
+
+    if (typeof getMergedFolderCategoriesData === 'function') {
+      appFolderData = await getMergedFolderCategoriesData();
+    } else if (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG) {
+      appFolderData = window.FOLDER_CATEGORIES_CONFIG;
+    } else if (typeof FOLDER_CATEGORIES_CONFIG !== 'undefined') {
+      appFolderData = FOLDER_CATEGORIES_CONFIG;
+    }
   } catch (err) {
     console.error('Error reloading app data:', err);
     if (typeof CLASSES_DATA !== 'undefined') {
       appClassesData = CLASSES_DATA;
     }
+    if (typeof FOLDER_CATEGORIES_CONFIG !== 'undefined') {
+      appFolderData = FOLDER_CATEGORIES_CONFIG;
+    }
   }
+}
+
+// Render Page 1 Vocational Folder Header Categories (Google Drive Hierarchy)
+function renderFolderCategories() {
+  if (!folderCategoriesContainer) return;
+  const categories = appFolderData || (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG) || FOLDER_CATEGORIES_CONFIG || {};
+  const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+
+  const keys = Object.keys(categories);
+  if (keys.length === 0) return;
+
+  folderCategoriesContainer.innerHTML = keys.map(k => {
+    const cat = categories[k];
+    const noteCount = (cat.notes && Array.isArray(cat.notes)) ? cat.notes.length : 0;
+    const subfolders = cat.subfolders || [];
+    const badgeColor = cat.badgeColor || '#2563eb';
+
+    const subPillsHtml = subfolders.filter(s => s.id !== 'all').map(sub => `
+      <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('${esc(cat.id)}', '${esc(sub.id)}')">
+        <span>${esc(sub.icon || '📁')}</span> ${esc(sub.name.replace(/^[^\w\s]+\s*/, ''))}
+      </span>
+    `).join('');
+
+    return `
+      <div class="folder-card" onclick="selectFolderCategory('${esc(cat.id)}', 'all')">
+        <div class="folder-card-top">
+          <div class="folder-icon-wrap" style="background: ${badgeColor}18; color: ${badgeColor};">
+            ${esc(cat.icon || '📁')}
+          </div>
+          <span class="folder-badge" style="background: ${badgeColor}18; color: ${badgeColor}; border: 1px solid ${badgeColor}35;">
+            ${esc(cat.badge || 'FOLDER')}
+          </span>
+        </div>
+
+        <div>
+          <div class="folder-card-title">
+            ${esc(cat.name)}
+          </div>
+          <div class="folder-card-fullname">${esc(cat.fullName || cat.name)}</div>
+          <div class="folder-card-desc">${esc(cat.description || '')}</div>
+        </div>
+
+        ${subPillsHtml ? `<div class="folder-subfolder-pills">${subPillsHtml}</div>` : ''}
+
+        <div class="folder-card-footer">
+          <span>📚 ${noteCount} Study Note${noteCount === 1 ? '' : 's'}</span>
+          <span class="folder-open-arrow">Open Folder →</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // Render Page 1 Posters / Notices
@@ -106,7 +178,65 @@ function renderPosters() {
   }).join('');
 }
 
-// Select Class (Triggered by Diamond Quadrants or Quick Buttons)
+// Select Folder Category (Primary: DDEO, JSD, BOOKS, HTML NOTES, ExtraS, ALL CLASSES)
+async function selectFolderCategory(folderKey, subFolderId = 'all') {
+  await reloadAllData();
+
+  const sourceData = appFolderData || (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG) || FOLDER_CATEGORIES_CONFIG || {};
+  const folder = sourceData[folderKey];
+  if (!folder) {
+    console.warn('Folder category not found:', folderKey);
+    return;
+  }
+
+  currentMode = 'folder';
+  currentFolderCategory = folderKey;
+  currentSubFolder = subFolderId || 'all';
+  currentSearch = '';
+  if (searchInput) searchInput.value = '';
+
+  if (classHeading) {
+    classHeading.innerHTML = `<span>${folder.icon || '📁'}</span> ${folder.name} <span style="font-size: 0.82em; font-weight: 500; opacity: 0.9;">- ${folder.fullName || ''}</span>`;
+  }
+  if (classSubheading) {
+    classSubheading.textContent = `${folder.hindiName || ''} • ${folder.description || ''}`;
+  }
+
+  renderSubFolderFilters(folder);
+  renderNotes();
+
+  // Screen Transition: Home -> Notes
+  if (homeScreen) homeScreen.classList.remove('active');
+  if (notesScreen) notesScreen.classList.add('active');
+  if (navBar) navBar.style.display = 'flex';
+  if (mainHeader) mainHeader.style.display = 'none';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Render Subfolder Filter Pills for Folder Category View
+function renderSubFolderFilters(folder) {
+  if (!subjectFilters || !folder) return;
+  const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+  const subfolders = folder.subfolders || [{ id: 'all', name: '📁 All Files', icon: '📁' }];
+
+  subjectFilters.innerHTML = subfolders.map(sub => `
+    <button class="subject-pill ${currentSubFolder === sub.id ? 'active' : ''}" onclick="filterSubFolder('${esc(sub.id)}')">
+      <span>${esc(sub.icon || '📁')}</span> ${esc(sub.name)}
+    </button>
+  `).join('');
+}
+
+// Filter Notes by Subfolder
+function filterSubFolder(subFolderId) {
+  currentSubFolder = subFolderId;
+  const source = appFolderData || (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG) || FOLDER_CATEGORIES_CONFIG;
+  const folder = source[currentFolderCategory];
+  renderSubFolderFilters(folder);
+  renderNotes();
+}
+
+// Select Class (Secondary: Diamond Quadrants or Quick Buttons)
 async function selectClass(className) {
   // Always fetch latest merged data so newly synced Google Drive notes appear immediately
   await reloadAllData();
@@ -120,6 +250,7 @@ async function selectClass(className) {
     return;
   }
 
+  currentMode = 'class';
   currentClass = className;
   currentSubject = 'all';
   currentSearch = '';
@@ -150,7 +281,7 @@ function goHome() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Render Subject Filter Pills
+// Render Subject Filter Pills (Class View)
 function renderSubjectFilters(classData) {
   if (!subjectFilters || !classData || !classData.subjects) return;
   const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
@@ -165,7 +296,7 @@ function renderSubjectFilters(classData) {
   subjectFilters.innerHTML = pills.join('');
 }
 
-// Filter Notes by Subject
+// Filter Notes by Subject (Class View)
 function filterSubject(subjectId) {
   currentSubject = subjectId;
   const source = appClassesData || (typeof window !== 'undefined' && window.CLASSES_DATA) || CLASSES_DATA;
@@ -183,38 +314,77 @@ function setupSearch() {
   });
 }
 
-// Render Notes for Selected Class & Filter
+// Render Notes for Selected Category/Class & Active Filters
 function renderNotes() {
   if (!notesContainer) return;
-  const source = appClassesData || (typeof window !== 'undefined' && window.CLASSES_DATA) || CLASSES_DATA;
-  const classData = source ? source[currentClass] : null;
-  if (!classData || !classData.subjects) return;
-
   const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
   const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
   const sanitizeFilename = (typeof Security !== 'undefined') ? Security.sanitizeFilename : (f => f);
 
   let allNotes = [];
 
-  classData.subjects.forEach(subject => {
-    if (currentSubject === 'all' || currentSubject === subject.id) {
-      subject.notes.forEach(note => {
-        allNotes.push({
-          ...note,
-          subjectName: subject.name,
-          subjectIcon: subject.icon,
-          subjectColor: subject.color
-        });
+  if (currentMode === 'folder') {
+    const sourceFolder = appFolderData || (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG) || FOLDER_CATEGORIES_CONFIG;
+    const folder = sourceFolder ? sourceFolder[currentFolderCategory] : null;
+    if (!folder || !folder.notes) return;
+
+    allNotes = [...folder.notes];
+
+    // Filter by Subfolder
+    if (currentSubFolder && currentSubFolder !== 'all') {
+      allNotes = allNotes.filter(n => {
+        const sId = (n.subFolder || '').toLowerCase();
+        const cKey = (n.classKey || '').toLowerCase();
+        const title = (n.title || '').toLowerCase();
+        const subId = (n.subjectId || '').toLowerCase();
+
+        if (currentSubFolder === 'class9') {
+          return sId === 'class9' || cKey === '9th' || cKey === '9' || /class\s*9|9th/i.test(title);
+        }
+        if (currentSubFolder === 'class10') {
+          return sId === 'class10' || cKey === '10th' || cKey === '10' || /class\s*10|10th/i.test(title);
+        }
+        if (currentSubFolder === 'class11') {
+          return sId === 'class11' || cKey === '11th' || cKey === '11' || /class\s*11|11th/i.test(title);
+        }
+        if (currentSubFolder === 'class12') {
+          return sId === 'class12' || cKey === '12th' || cKey === '12' || /class\s*12|12th/i.test(title);
+        }
+        if (currentSubFolder === 'common') {
+          return sId === 'common' || n.isCommon || subId === 'part-a' || /common|employability/i.test(title);
+        }
+        if (currentSubFolder === 'questions') {
+          return sId === 'questions' || subId === 'sample-papers' || /question|sample|model|pyq|blueprint/i.test(title);
+        }
+        return sId === currentSubFolder.toLowerCase();
       });
     }
-  });
+  } else {
+    const sourceClass = appClassesData || (typeof window !== 'undefined' && window.CLASSES_DATA) || CLASSES_DATA;
+    const classData = sourceClass ? sourceClass[currentClass] : null;
+    if (!classData || !classData.subjects) return;
+
+    classData.subjects.forEach(subject => {
+      if (currentSubject === 'all' || currentSubject === subject.id) {
+        subject.notes.forEach(note => {
+          allNotes.push({
+            ...note,
+            subjectName: subject.name,
+            subjectIcon: subject.icon,
+            subjectColor: subject.color
+          });
+        });
+      }
+    });
+  }
 
   // Apply Search Filter (Null-safe)
   if (currentSearch) {
     allNotes = allNotes.filter(n =>
       ((n.title || '').toLowerCase().includes(currentSearch)) ||
       ((n.hindiTitle || '').toLowerCase().includes(currentSearch)) ||
-      ((n.subjectName || '').toLowerCase().includes(currentSearch))
+      ((n.subjectName || '').toLowerCase().includes(currentSearch)) ||
+      ((n.folderHeader || '').toLowerCase().includes(currentSearch))
     );
   }
 
@@ -223,7 +393,7 @@ function renderNotes() {
       <div class="empty-state">
         <div class="empty-icon">🔍</div>
         <p><strong>No notes found</strong></p>
-        <p style="font-size: 0.8rem; margin-top: 4px;">Try searching for another chapter or topic.</p>
+        <p style="font-size: 0.8rem; margin-top: 4px;">No files match your search or filter criteria.</p>
       </div>
     `;
     return;
@@ -246,12 +416,16 @@ function renderNotes() {
     const safeId = sanitizeFilename(n.id || `note-${idx}`);
     const isSyl = n.isSyllabus || (n.subjectId === 'syllabus') || (n.id && n.id.includes('syl'));
     const safeNoteKey = esc(String(n.id || idx));
+
+    const headerTag = n.folderHeader || (n.classKey ? (['11th','12th'].includes(n.classKey) ? 'JSD' : 'DDEO') : 'IT/ITeS');
+    const classDetail = n.classKey ? ` • Class ${n.classKey}` : (n.subjectName ? ` • ${n.subjectName}` : '');
+
     return `
     <div class="note-card ${isSyl ? 'syllabus-card' : ''} ${isDrive ? 'gdrive-card' : ''}">
       <div class="note-card-top">
         <div>
           <div style="font-size: 0.72rem; font-weight: 700; color: ${esc(n.subjectColor || '#2563eb')}; margin-bottom: 2px;">
-            ${esc(n.subjectIcon || '💻')} ${esc(n.subjectName || 'IT/ITeS Skills')}
+            ${esc(n.subjectIcon || (currentMode === 'folder' ? '📁' : '💻'))} ${esc(headerTag)}${esc(classDetail)}
           </div>
           <div class="note-title">${esc(n.title || 'Untitled Note')}</div>
           <div class="note-hindi-title">${esc(n.hindiTitle || '')}</div>
@@ -400,6 +574,9 @@ function escapeHtml(str) {
 
 // Global Browser Window Bindings
 if (typeof window !== 'undefined') {
+  window.selectFolderCategory = selectFolderCategory;
+  window.filterSubFolder = filterSubFolder;
+  window.renderFolderCategories = renderFolderCategories;
   window.selectClass = selectClass;
   window.goHome = goHome;
   window.openPdfViewer = openPdfViewer;

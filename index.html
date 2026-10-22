@@ -70,11 +70,140 @@
         </button>
       </div>
 
-      <!-- Diamond / Kite 4-Quadrant Selector Section -->
+      <!-- Primary Folder Headers Section (Mirroring Google Drive Structure) -->
+      <section class="folder-categories-section">
+        <div class="folder-section-header">
+          <div class="folder-section-title">
+            <span>📁</span> Study Material Folders / अध्ययन सामग्री फ़ोल्डर
+          </div>
+          <span class="folder-section-badge">GDRIVE SYNCED</span>
+        </div>
+        <p class="folder-section-desc">
+          Browse notes categorized directly by Vocational Trade, Textbooks & Topic folders
+        </p>
+
+        <div id="folderCategoriesContainer" class="folder-grid">
+          <!-- 1. DDEO (Classes 9th & 10th) -->
+          <div class="folder-card" onclick="selectFolderCategory('DDEO', 'all')">
+            <div class="folder-card-top">
+              <div class="folder-icon-wrap" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">💻</div>
+              <span class="folder-badge" style="background: rgba(2, 132, 199, 0.15); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.3);">CLASSES 9 & 10</span>
+            </div>
+            <div>
+              <div class="folder-card-title">DDEO</div>
+              <div class="folder-card-fullname">Domestic Data Entry Operator (Code 402)</div>
+              <div class="folder-card-desc">Vocational IT/ITeS Curriculum for Classes 9th & 10th</div>
+            </div>
+            <div class="folder-subfolder-pills">
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('DDEO', 'class9')"><span>🎓</span> Class 9</span>
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('DDEO', 'class10')"><span>🎓</span> Class 10</span>
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('DDEO', 'common')"><span>⚡</span> Common (9 & 10)</span>
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('DDEO', 'questions')"><span>📝</span> Questions & Blueprints</span>
+            </div>
+            <div class="folder-card-footer">
+              <span>📚 Study Notes</span>
+              <span class="folder-open-arrow">Open Folder →</span>
+            </div>
+          </div>
+
+          <!-- 2. JSD (Classes 11th & 12th) -->
+          <div class="folder-card" onclick="selectFolderCategory('JSD', 'all')">
+            <div class="folder-card-top">
+              <div class="folder-icon-wrap" style="background: rgba(37, 99, 235, 0.15); color: #2563eb;">⚡</div>
+              <span class="folder-badge" style="background: rgba(37, 99, 235, 0.15); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.3);">CLASSES 11 & 12</span>
+            </div>
+            <div>
+              <div class="folder-card-title">JSD</div>
+              <div class="folder-card-fullname">Junior Software Developer (Code 802)</div>
+              <div class="folder-card-desc">Vocational IT/ITeS Curriculum for Classes 11th & 12th</div>
+            </div>
+            <div class="folder-subfolder-pills">
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('JSD', 'class11')"><span>🎓</span> Class 11</span>
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('JSD', 'class12')"><span>🎓</span> Class 12</span>
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('JSD', 'common')"><span>⚡</span> Common (11 & 12)</span>
+              <span class="folder-sub-pill" onclick="event.stopPropagation(); selectFolderCategory('JSD', 'questions')"><span>📝</span> Questions & Blueprints</span>
+            </div>
+            <div class="folder-card-footer">
+              <span>📚 Study Notes</span>
+              <span class="folder-open-arrow">Open Folder →</span>
+            </div>
+          </div>
+
+          <!-- 3. BOOKS -->
+          <div class="folder-card" onclick="selectFolderCategory('BOOKS', 'all')">
+            <div class="folder-card-top">
+              <div class="folder-icon-wrap" style="background: rgba(5, 150, 105, 0.15); color: #059669;">📚</div>
+              <span class="folder-badge" style="background: rgba(5, 150, 105, 0.15); color: #059669; border: 1px solid rgba(5, 150, 105, 0.3);">TEXTBOOKS</span>
+            </div>
+            <div>
+              <div class="folder-card-title">BOOKS</div>
+              <div class="folder-card-fullname">Official Textbooks & Study Guides</div>
+              <div class="folder-card-desc">NCERT & PSSCIVE Prescribed Vocational IT Textbooks</div>
+            </div>
+            <div class="folder-card-footer">
+              <span>📚 Study Notes</span>
+              <span class="folder-open-arrow">Open Folder →</span>
+            </div>
+          </div>
+
+          <!-- 4. HTML NOTES -->
+          <div class="folder-card" onclick="selectFolderCategory('HTML_NOTES', 'all')">
+            <div class="folder-card-top">
+              <div class="folder-icon-wrap" style="background: rgba(217, 119, 6, 0.15); color: #d97706;">🌐</div>
+              <span class="folder-badge" style="background: rgba(217, 119, 6, 0.15); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.3);">WEB CODING</span>
+            </div>
+            <div>
+              <div class="folder-card-title">HTML NOTES</div>
+              <div class="folder-card-fullname">HTML & Web Applications Notes</div>
+              <div class="folder-card-desc">Web Development, HTML5, CSS Styling & Coding Units</div>
+            </div>
+            <div class="folder-card-footer">
+              <span>📚 Study Notes</span>
+              <span class="folder-open-arrow">Open Folder →</span>
+            </div>
+          </div>
+
+          <!-- 5. ExtraS -->
+          <div class="folder-card" onclick="selectFolderCategory('EXTRAS', 'all')">
+            <div class="folder-card-top">
+              <div class="folder-icon-wrap" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed;">🔬</div>
+              <span class="folder-badge" style="background: rgba(124, 58, 237, 0.15); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.3);">PRACTICALS</span>
+            </div>
+            <div>
+              <div class="folder-card-title">ExtraS</div>
+              <div class="folder-card-fullname">Practical, Projects & Lab Manuals</div>
+              <div class="folder-card-desc">Practical Exercises, Viva Voce Prep & Student Projects</div>
+            </div>
+            <div class="folder-card-footer">
+              <span>📚 Study Notes</span>
+              <span class="folder-open-arrow">Open Folder →</span>
+            </div>
+          </div>
+
+          <!-- 6. ALL CLASSES -->
+          <div class="folder-card" onclick="selectFolderCategory('ALL_CLASSES', 'all')">
+            <div class="folder-card-top">
+              <div class="folder-icon-wrap" style="background: rgba(8, 145, 178, 0.15); color: #0891b2;">📋</div>
+              <span class="folder-badge" style="background: rgba(8, 145, 178, 0.15); color: #0891b2; border: 1px solid rgba(8, 145, 178, 0.3);">ALL CLASSES</span>
+            </div>
+            <div>
+              <div class="folder-card-title">ALL CLASSES</div>
+              <div class="folder-card-fullname">Common Syllabus, Blueprints & Question Bank</div>
+              <div class="folder-card-desc">Combined Scheme of Examination, Marks Distribution & Notices</div>
+            </div>
+            <div class="folder-card-footer">
+              <span>📚 Study Notes</span>
+              <span class="folder-open-arrow">Open Folder →</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Secondary Class Selector (Diamond / Kite) -->
       <section class="diamond-section">
         <div class="selector-header-row">
           <div class="selector-instruction">
-            <span>🎯</span> Select Your Class / कक्षा चुनें
+            <span>🎯</span> Or Browse by Class / अथवा कक्षा अनुसार देखें
           </div>
           <button class="install-pill-btn" onclick="triggerPwaInstall()" title="Install App on Phone">
             📲 Install App

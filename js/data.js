@@ -42,6 +42,96 @@ const POSTERS_DATA = [
   }
 ];
 
+// Primary Vocational Folder Headers (Mirroring Google Drive Structure)
+const FOLDER_CATEGORIES_CONFIG = {
+  "DDEO": {
+    id: "DDEO",
+    name: "DDEO",
+    fullName: "Domestic Data Entry Operator (Code 402)",
+    description: "Vocational IT/ITeS Curriculum for Classes 9th & 10th",
+    hindiName: "घरेलू डेटा प्रविष्टि ऑपरेटर (कक्षा 9 एवं 10)",
+    icon: "💻",
+    badge: "CLASSES 9 & 10",
+    badgeColor: "#0284c7",
+    subfolders: [
+      { id: "all", name: "📁 All DDEO Material", icon: "📁" },
+      { id: "class9", name: "🎓 Class 9", icon: "🎓" },
+      { id: "class10", name: "🎓 Class 10", icon: "🎓" },
+      { id: "common", name: "⚡ Common (9 & 10)", icon: "⚡" },
+      { id: "questions", name: "📝 Questions & Blueprints", icon: "📝" }
+    ]
+  },
+  "JSD": {
+    id: "JSD",
+    name: "JSD",
+    fullName: "Junior Software Developer (Code 802)",
+    description: "Vocational IT/ITeS Curriculum for Classes 11th & 12th",
+    hindiName: "जूनियर सॉफ्टवेयर डेवलपर (कक्षा 11 एवं 12)",
+    icon: "⚡",
+    badge: "CLASSES 11 & 12",
+    badgeColor: "#2563eb",
+    subfolders: [
+      { id: "all", name: "📁 All JSD Material", icon: "📁" },
+      { id: "class11", name: "🎓 Class 11", icon: "🎓" },
+      { id: "class12", name: "🎓 Class 12", icon: "🎓" },
+      { id: "common", name: "⚡ Common (11 & 12)", icon: "⚡" },
+      { id: "questions", name: "📝 Questions & Blueprints", icon: "📝" }
+    ]
+  },
+  "BOOKS": {
+    id: "BOOKS",
+    name: "BOOKS",
+    fullName: "Official Textbooks & Study Guides",
+    description: "NCERT & PSSCIVE Prescribed Vocational IT Textbooks",
+    hindiName: "पाठ्यपुस्तकें एवं संदर्भ सामग्री",
+    icon: "📚",
+    badge: "TEXTBOOKS",
+    badgeColor: "#059669",
+    subfolders: [
+      { id: "all", name: "📚 All Textbooks", icon: "📚" }
+    ]
+  },
+  "HTML_NOTES": {
+    id: "HTML_NOTES",
+    name: "HTML NOTES",
+    fullName: "HTML & Web Applications Notes",
+    description: "Web Development, HTML5, CSS Styling & Coding Units",
+    hindiName: "वेब एप्लिकेशन एवं एचटीएमएल नोट्स",
+    icon: "🌐",
+    badge: "WEB CODING",
+    badgeColor: "#d97706",
+    subfolders: [
+      { id: "all", name: "🌐 All HTML Notes", icon: "🌐" }
+    ]
+  },
+  "EXTRAS": {
+    id: "EXTRAS",
+    name: "ExtraS",
+    fullName: "Practical, Projects & Lab Manuals",
+    description: "Practical Exercises, Viva Voce Prep & Student Projects",
+    hindiName: "प्रायोगिक एवं अतिरिक्त अध्ययन सामग्री",
+    icon: "🔬",
+    badge: "PRACTICALS",
+    badgeColor: "#7c3aed",
+    subfolders: [
+      { id: "all", name: "🔬 All Practicals & Extras", icon: "🔬" }
+    ]
+  },
+  "ALL_CLASSES": {
+    id: "ALL_CLASSES",
+    name: "ALL CLASSES",
+    fullName: "Common Syllabus, Blueprints & Question Bank",
+    description: "Combined Scheme of Examination, Marks Distribution & Notices",
+    hindiName: "सभी कक्षाओं हेतु सामान्य पाठ्यक्रम एवं सूचनाएं",
+    icon: "📋",
+    badge: "ALL CLASSES",
+    badgeColor: "#0891b2",
+    subfolders: [
+      { id: "all", name: "📋 All Syllabus & Common Material", icon: "📋" }
+    ]
+  }
+};
+
 // Notes Organized by Class (9th, 10th, 11th, 12th) - Dedicated to IT / ITeS
 const CLASSES_DATA = {
   "9th": {
@@ -526,4 +616,8 @@ if (typeof window !== 'undefined') {
   window.SCHOOL_CONFIG = SCHOOL_CONFIG;
   window.POSTERS_DATA = POSTERS_DATA;
   window.CLASSES_DATA = CLASSES_DATA;
+  window.FOLDER_CATEGORIES_CONFIG = FOLDER_CATEGORIES_CONFIG;
+}
+if (typeof module !== 'undefined') {
+  module.exports = { SCHOOL_CONFIG, POSTERS_DATA, CLASSES_DATA, FOLDER_CATEGORIES_CONFIG };
 }

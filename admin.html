@@ -473,6 +473,15 @@
             </div>
             <div class="manage-filters" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
               <input type="search" id="manageSearchInput" class="form-input text-sm" placeholder="🔍 Search notes..." oninput="renderManageTable()" style="max-width: 200px; padding: 6px 10px;">
+              <select id="manageFolderFilter" class="form-select text-sm" onchange="renderManageTable()">
+                <option value="all">All Folders</option>
+                <option value="DDEO">💻 DDEO (9th & 10th)</option>
+                <option value="JSD">⚡ JSD (11th & 12th)</option>
+                <option value="BOOKS">📚 BOOKS</option>
+                <option value="HTML_NOTES">🌐 HTML NOTES</option>
+                <option value="EXTRAS">🔬 ExtraS</option>
+                <option value="ALL_CLASSES">📋 ALL CLASSES</option>
+              </select>
               <select id="manageClassFilter" class="form-select text-sm" onchange="renderManageTable()">
                 <option value="all">All Classes</option>
                 <option value="9th">Class 9th</option>
@@ -507,7 +516,7 @@
                   <th style="width: 38px; text-align: center;">
                     <input type="checkbox" id="selectAllNotes" onchange="toggleSelectAllNotes(this)" title="Select/Deselect all visible notes" style="width: 16px; height: 16px; cursor: pointer; accent-color: #dc2626;">
                   </th>
-                  <th>Class</th>
+                  <th>Folder / Class</th>
                   <th>Subject</th>
                   <th>Chapter Title</th>
                   <th>Size / Pages</th>

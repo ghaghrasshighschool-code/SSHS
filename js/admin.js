@@ -666,7 +666,8 @@ async function handleNoteUpload(e) {
 // ==============================================
 async function renderManageTable() {
   const tbody = document.getElementById('manageNotesBody');
-  const classFilter = document.getElementById('manageClassFilter').value;
+  const classFilter = document.getElementById('manageClassFilter') ? document.getElementById('manageClassFilter').value : 'all';
+  const folderFilter = document.getElementById('manageFolderFilter') ? document.getElementById('manageFolderFilter').value : 'all';
   const searchInput = document.getElementById('manageSearchInput');
   const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   const mergedData = await getMergedClassesData();
@@ -682,12 +683,17 @@ async function renderManageTable() {
 
     mergedData[classKey].subjects.forEach(subject => {
       subject.notes.forEach(note => {
+        const noteFolderRaw = note.folderHeader || (['11th', '12th'].includes(classKey) ? 'JSD' : 'DDEO');
+        const noteFolderKey = noteFolderRaw.toUpperCase().replace(/\s+/g, '_');
+        if (folderFilter !== 'all' && noteFolderKey !== folderFilter && noteFolderRaw !== folderFilter) return;
+
         // Apply search filter if specified
         if (searchTerm) {
           const matchTitle = (note.title || '').toLowerCase().includes(searchTerm);
           const matchHindi = (note.hindiTitle || '').toLowerCase().includes(searchTerm);
           const matchSubject = (subject.name || '').toLowerCase().includes(searchTerm);
-          if (!matchTitle && !matchHindi && !matchSubject) return;
+          const matchFolder = noteFolderRaw.toLowerCase().includes(searchTerm);
+          if (!matchTitle && !matchHindi && !matchSubject && !matchFolder) return;
         }
 
         const isDrive = Boolean(note.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(note.fileUrl)));
@@ -708,7 +714,10 @@ async function renderManageTable() {
             <td style="text-align: center;">
               <input type="checkbox" class="note-select-cb" value="${esc(note.id)}" data-custom="${isCustom}" data-drive="${isDrive}" onchange="updateBulkDeleteState()" style="width: 16px; height: 16px; cursor: pointer; accent-color: #dc2626;">
             </td>
-            <td><span class="class-tag class-tag-${esc(classKey)}">${esc(classKey)}</span></td>
+            <td>
+              <div style="font-weight: 700; font-size: 0.72rem; color: #1e3a8a; margin-bottom: 2px;">📁 ${esc(noteFolderRaw)}</div>
+              <span class="class-tag class-tag-${esc(classKey)}">${esc(classKey)}</span>
+            </td>
             <td><strong>${esc(subject.name)}</strong></td>
             <td>
               <div>

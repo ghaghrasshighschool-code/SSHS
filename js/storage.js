@@ -267,9 +267,124 @@ function getMergedPostersData() {
   return (typeof POSTERS_DATA !== 'undefined') ? POSTERS_DATA : [];
 }
 
+// Build Folder-based Categories (DDEO, JSD, BOOKS, HTML NOTES, ExtraS, ALL CLASSES)
+async function getMergedFolderCategoriesData() {
+  const baseConfig = (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG)
+    ? window.FOLDER_CATEGORIES_CONFIG
+    : (typeof FOLDER_CATEGORIES_CONFIG !== 'undefined' ? FOLDER_CATEGORIES_CONFIG : {});
+
+  // Deep clone categories
+  const categories = JSON.parse(JSON.stringify(baseConfig));
+  for (const k in categories) {
+    categories[k].notes = [];
+  }
+
+  const deletedIds = new Set(getDeletedNoteIds());
+  const classesData = await getMergedClassesData();
+
+  // Helper to add note to category avoiding duplicates
+  function addNoteToCategory(catKey, note, subFolderKey = 'all') {
+    if (!categories[catKey]) {
+      categories[catKey] = {
+        id: catKey,
+        name: catKey.replace(/_/g, ' '),
+        fullName: catKey.replace(/_/g, ' '),
+        description: 'Vocational Study Notes',
+        icon: '📁',
+        badge: 'FOLDER',
+        badgeColor: '#2563eb',
+        subfolders: [{ id: 'all', name: '📁 All Files', icon: '📁' }],
+        notes: []
+      };
+    }
+    const targetCat = categories[catKey];
+    if (!targetCat.notes.some(n => n.id === note.id || (note.driveFileId && n.driveFileId === note.driveFileId))) {
+      targetCat.notes.push({
+        ...note,
+        folderHeader: catKey,
+        subFolder: subFolderKey || note.subFolder || 'all'
+      });
+    }
+  }
+
+  // 1. Process all notes from merged class dataset
+  for (const classKey in classesData) {
+    const cls = classesData[classKey];
+    cls.subjects.forEach(subject => {
+      subject.notes.forEach(note => {
+        if (deletedIds.has(note.id)) return;
+
+        // If note has explicit folder header (e.g. BOOKS, HTML NOTES, EXTRAS, ALL CLASSES), assign directly
+        const explicitHeader = note.folderHeader ? note.folderHeader.toUpperCase().replace(/\s+/g, '_') : null;
+        if (explicitHeader && (explicitHeader === 'BOOKS' || explicitHeader === 'HTML_NOTES' || explicitHeader === 'EXTRAS' || explicitHeader === 'ALL_CLASSES')) {
+          addNoteToCategory(explicitHeader, note, note.subFolder || 'all');
+        } else {
+          // Primary folder by vocational trade
+          if (classKey === '9th') {
+            const sub = note.subFolder || ((subject.id === 'sample-papers') ? 'questions' : (subject.id === 'part-a' ? 'common' : 'class9'));
+            addNoteToCategory('DDEO', note, sub);
+          } else if (classKey === '10th') {
+            const sub = note.subFolder || ((subject.id === 'sample-papers') ? 'questions' : (subject.id === 'part-a' ? 'common' : 'class10'));
+            addNoteToCategory('DDEO', note, sub);
+          } else if (classKey === '11th') {
+            const sub = note.subFolder || ((subject.id === 'sample-papers') ? 'questions' : (subject.id === 'part-a' ? 'common' : 'class11'));
+            addNoteToCategory('JSD', note, sub);
+          } else if (classKey === '12th') {
+            const sub = note.subFolder || ((subject.id === 'sample-papers') ? 'questions' : (subject.id === 'part-a' ? 'common' : 'class12'));
+            addNoteToCategory('JSD', note, sub);
+          }
+        }
+
+        // Cross-tag specific topics
+        const titleLower = (note.title || '').toLowerCase();
+        if (titleLower.includes('html') || titleLower.includes('web application')) {
+          addNoteToCategory('HTML_NOTES', note, 'all');
+        }
+        if (note.isSyllabus || subject.id === 'syllabus' || titleLower.includes('syllabus') || titleLower.includes('curriculum')) {
+          addNoteToCategory('ALL_CLASSES', note, 'all');
+        }
+        if (subject.id === 'practical' || titleLower.includes('practical') || titleLower.includes('lab')) {
+          addNoteToCategory('EXTRAS', note, 'all');
+        }
+      });
+    });
+  }
+
+  // 2. Direct Google Drive notes mapping
+  let driveNotes = [];
+  if (typeof GDrive !== 'undefined' && typeof GDrive.getDriveNotes === 'function') {
+    driveNotes = GDrive.getDriveNotes();
+  } else {
+    try {
+      const raw = localStorage.getItem('sshs_gdrive_synced_notes');
+      driveNotes = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      driveNotes = [];
+    }
+  }
+
+  driveNotes.forEach(note => {
+    if (deletedIds.has(note.id) || (note.driveFileId && deletedIds.has(note.driveFileId))) return;
+    const fHeader = (note.folderHeader || '').toUpperCase().replace(/\s+/g, '_');
+
+    if (fHeader && categories[fHeader]) {
+      addNoteToCategory(fHeader, note, note.subFolder || 'all');
+    } else if (note.folderHeader === 'HTML NOTES' || fHeader === 'HTML_NOTES') {
+      addNoteToCategory('HTML_NOTES', note, note.subFolder || 'all');
+    } else if (note.folderHeader === 'ALL CLASSES' || fHeader === 'ALL_CLASSES') {
+      addNoteToCategory('ALL_CLASSES', note, note.subFolder || 'all');
+    } else if (note.folderHeader) {
+      addNoteToCategory(note.folderHeader, note, note.subFolder || 'all');
+    }
+  });
+
+  return categories;
+}
+
 // Global Browser Window Bindings
 if (typeof window !== 'undefined') {
   window.getMergedClassesData = getMergedClassesData;
+  window.getMergedFolderCategoriesData = getMergedFolderCategoriesData;
   window.getMergedPostersData = getMergedPostersData;
   window.savePdfBlob = savePdfBlob;
   window.getPdfBlob = getPdfBlob;

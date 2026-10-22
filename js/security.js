@@ -215,7 +215,58 @@ const Security = {
 
     const isCommon = Boolean(s.includes('common') || s.includes('all classes'));
 
-    return { classKey, categoryId, categoryName, cleanTitle: clean, isSyllabus, isCommon };
+    // 4. Detect Folder Header (DDEO, JSD, BOOKS, HTML_NOTES, EXTRAS, ALL_CLASSES)
+    let folderHeader = 'DDEO';
+    let subFolder = 'all';
+
+    // Prioritize explicit folder context from Google Drive hierarchy
+    const fc = folderContext.toLowerCase();
+    if (fc.includes('all classes') || fc.includes('all_classes')) {
+      folderHeader = 'ALL_CLASSES';
+    } else if (fc.includes('extras') || fc.includes('extra')) {
+      folderHeader = 'EXTRAS';
+    } else if (fc.includes('html notes') || fc.includes('html_notes')) {
+      folderHeader = 'HTML_NOTES';
+    } else if (fc.includes('books') || fc.includes('book')) {
+      folderHeader = 'BOOKS';
+    } else if (fc.includes('jsd')) {
+      folderHeader = 'JSD';
+    } else if (fc.includes('ddeo')) {
+      folderHeader = 'DDEO';
+    } else if (s.includes('jsd')) {
+      folderHeader = 'JSD';
+    } else if (s.includes('ddeo')) {
+      folderHeader = 'DDEO';
+    } else if (s.includes('html')) {
+      folderHeader = 'HTML_NOTES';
+    } else if (s.includes('book') || s.includes('textbook') || s.includes('ncert')) {
+      folderHeader = 'BOOKS';
+    } else if (s.includes('extra') || s.includes('practical') || /\blabs?\b/i.test(s) || s.includes('project')) {
+      folderHeader = 'EXTRAS';
+    } else if (s.includes('all class') || s.includes('all_class') || isCommon) {
+      folderHeader = 'ALL_CLASSES';
+    } else if (classKey === '11th' || classKey === '12th') {
+      folderHeader = 'JSD';
+    } else {
+      folderHeader = 'DDEO';
+    }
+
+    // Detect Subfolder inside Folder
+    if (s.includes('class 9') || s.includes('class9') || s.includes('9th') || s.includes('/ 9 /')) {
+      subFolder = 'class9';
+    } else if (s.includes('class 10') || s.includes('class10') || s.includes('10th') || s.includes('/ 10 /')) {
+      subFolder = 'class10';
+    } else if (s.includes('class 11') || s.includes('class11') || s.includes('11th') || s.includes('/ 11 /')) {
+      subFolder = 'class11';
+    } else if (s.includes('class 12') || s.includes('class12') || s.includes('12th') || s.includes('/ 12 /')) {
+      subFolder = 'class12';
+    } else if (s.includes('common')) {
+      subFolder = 'common';
+    } else if (s.includes('question') || s.includes('sample') || s.includes('model') || s.includes('pyq')) {
+      subFolder = 'questions';
+    }
+
+    return { classKey, categoryId, categoryName, cleanTitle: clean, isSyllabus, isCommon, folderHeader, subFolder };
   }
 };
 
