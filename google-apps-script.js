@@ -22,7 +22,7 @@
  */
 
 // Paste your Google Drive Folder ID here (or leave it to pass dynamically via ?folderId=...)
-var DEFAULT_FOLDER_ID = "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE";
+var DEFAULT_FOLDER_ID = "1bs-B8-2p1-Lw5Xu4MZe_2lkWJN2bLAda";
 
 function doGet(e) {
   try {
