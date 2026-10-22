@@ -163,31 +163,76 @@ async function getMergedClassesData() {
 
   // 3. Append Google Drive synced notes
   try {
-    const driveNotes = (typeof GDrive !== 'undefined' && typeof GDrive.getDriveNotes === 'function')
-      ? GDrive.getDriveNotes()
-      : [];
+    let driveNotes = [];
+    if (typeof GDrive !== 'undefined' && typeof GDrive.getDriveNotes === 'function') {
+      driveNotes = GDrive.getDriveNotes();
+    } else {
+      try {
+        const raw = localStorage.getItem('sshs_gdrive_synced_notes');
+        driveNotes = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        driveNotes = [];
+      }
+    }
+
+    // Normalizes all variations of class keys ('9', '9th', 'Class 9', 'ix', 'all', 'common', 'ddeo', 'jsd')
+    function resolveClassKeys(rawKey) {
+      if (!rawKey) return ['9th'];
+      const s = String(rawKey).toLowerCase().trim();
+      if (s === 'all' || s === 'all classes' || s === 'common') {
+        return ['9th', '10th', '11th', '12th'];
+      }
+      if (s === 'ddeo') {
+        return ['9th', '10th'];
+      }
+      if (s === 'jsd') {
+        return ['11th', '12th'];
+      }
+      if (/(?:class|cl)?[ _-]*12(?:th)?\b|xii\b/.test(s)) return ['12th'];
+      if (/(?:class|cl)?[ _-]*11(?:th)?\b|xi\b/.test(s)) return ['11th'];
+      if (/(?:class|cl)?[ _-]*10(?:th)?\b|x\b/.test(s)) return ['10th'];
+      if (/(?:class|cl)?[ _-]*9(?:th)?\b|ix\b/.test(s)) return ['9th'];
+      return ['9th'];
+    }
 
     for (const driveNote of driveNotes) {
-      if (deletedIds.has(driveNote.id)) continue;
-      const targetClass = merged[driveNote.classKey];
-      if (!targetClass) continue;
-
-      let targetSubject = targetClass.subjects.find(s => s.id === driveNote.subjectId);
-      if (!targetSubject) {
-        targetSubject = {
-          id: driveNote.subjectId,
-          name: driveNote.subjectName || driveNote.subjectId,
-          icon: driveNote.subjectIcon || (driveNote.isSyllabus ? '📋' : '💻'),
-          color: driveNote.subjectColor || '#0284c7',
-          notes: []
-        };
-        targetClass.subjects.push(targetSubject);
+      if (deletedIds.has(driveNote.id) || (driveNote.driveFileId && deletedIds.has(driveNote.driveFileId))) {
+        continue;
       }
 
-      // Avoid duplicates
-      if (!targetSubject.notes.some(n => n.id === driveNote.id)) {
-        targetSubject.notes.unshift(driveNote);
-      }
+      const targetClassKeys = resolveClassKeys(driveNote.classKey);
+      const subId = driveNote.subjectId || (driveNote.isSyllabus ? 'syllabus' : 'part-b');
+
+      targetClassKeys.forEach(classKey => {
+        const targetClass = merged[classKey];
+        if (!targetClass) return;
+
+        let targetSubject = targetClass.subjects.find(s => s.id === subId);
+        if (!targetSubject) {
+          targetSubject = {
+            id: subId,
+            name: driveNote.subjectName || (driveNote.isSyllabus ? '📋 Syllabus (पाठ्यक्रम)' : '💻 Part B: IT Specific Skills'),
+            icon: driveNote.subjectIcon || (driveNote.isSyllabus ? '📋' : '💻'),
+            color: driveNote.subjectColor || (driveNote.isSyllabus ? '#0284c7' : '#2563eb'),
+            notes: []
+          };
+          targetClass.subjects.push(targetSubject);
+        }
+
+        // Avoid duplicates by comparing ID and driveFileId
+        const alreadyExists = targetSubject.notes.some(n =>
+          n.id === driveNote.id ||
+          (driveNote.driveFileId && (n.driveFileId === driveNote.driveFileId || n.id.includes(driveNote.driveFileId)))
+        );
+
+        if (!alreadyExists) {
+          targetSubject.notes.unshift({
+            ...driveNote,
+            classKey: classKey,
+            subjectId: subId
+          });
+        }
+      });
     }
   } catch (gErr) {
     console.warn('[Storage] Error merging Google Drive notes:', gErr);

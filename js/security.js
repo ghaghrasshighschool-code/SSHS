@@ -146,13 +146,13 @@ const Security = {
 
     // 1. Detect Class (12, 11, 10, then 9)
     let classKey = '9th';
-    if (/(?:class|cl|std|grade)?[ _-]*12(?:th)?(?=[^0-9]|$)|xii(?=[^a-z]|$)/i.test(s)) {
+    if (/(?:class|cl|std|grade)?[ _-]*12(?:th)?(?=[^0-9]|$)|(?:\b|_)xii(?=[^a-z]|$)/i.test(s)) {
       classKey = '12th';
-    } else if (/(?:class|cl|std|grade)?[ _-]*11(?:th)?(?=[^0-9]|$)|xi(?=[^a-z]|$)/i.test(s)) {
+    } else if (/(?:class|cl|std|grade)?[ _-]*11(?:th)?(?=[^0-9]|$)|(?:\b|_)xi(?=[^a-z]|$)/i.test(s)) {
       classKey = '11th';
-    } else if (/(?:class|cl|std|grade)?[ _-]*10(?:th)?(?=[^0-9]|$)|x(?=[^a-z0-9]|$)/i.test(s)) {
+    } else if (/(?:class|cl|std|grade)?[ _-]*10(?:th)?(?=[^0-9]|$)|(?:\b|_)x(?=[^a-z0-9]|$)/i.test(s)) {
       classKey = '10th';
-    } else if (/(?:class|cl|std|grade)?[ _-]*9(?:th)?(?=[^0-9]|$)|ix(?=[^a-z]|$)/i.test(s)) {
+    } else if (/(?:class|cl|std|grade)?[ _-]*9(?:th)?(?=[^0-9]|$)|(?:\b|_)ix(?=[^a-z]|$)/i.test(s)) {
       classKey = '9th';
     } else if (s.includes('jsd')) {
       // Junior Software Developer (JSD - Code 802) is senior secondary (Classes 11 & 12)

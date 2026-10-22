@@ -6,6 +6,7 @@ let currentSearch = '';
 let appClassesData = (typeof window !== 'undefined' && window.CLASSES_DATA) 
   ? window.CLASSES_DATA 
   : (typeof CLASSES_DATA !== 'undefined' ? CLASSES_DATA : {});
+const currentNotesMap = new Map();
 
 // DOM Elements
 const homeScreen = document.getElementById('homeScreen');
@@ -107,9 +108,8 @@ function renderPosters() {
 
 // Select Class (Triggered by Diamond Quadrants or Quick Buttons)
 async function selectClass(className) {
-  if (!appClassesData || !appClassesData[className]) {
-    await reloadAllData();
-  }
+  // Always fetch latest merged data so newly synced Google Drive notes appear immediately
+  await reloadAllData();
 
   const sourceData = (appClassesData && appClassesData[className])
     ? appClassesData
@@ -209,12 +209,12 @@ function renderNotes() {
     }
   });
 
-  // Apply Search Filter
+  // Apply Search Filter (Null-safe)
   if (currentSearch) {
     allNotes = allNotes.filter(n =>
-      n.title.toLowerCase().includes(currentSearch) ||
-      n.hindiTitle.toLowerCase().includes(currentSearch) ||
-      n.subjectName.toLowerCase().includes(currentSearch)
+      ((n.title || '').toLowerCase().includes(currentSearch)) ||
+      ((n.hindiTitle || '').toLowerCase().includes(currentSearch)) ||
+      ((n.subjectName || '').toLowerCase().includes(currentSearch))
     );
   }
 
@@ -236,22 +236,25 @@ function renderNotes() {
     return bSyl - aSyl;
   });
 
+  // Store notes in currentNotesMap for quote-safe lookup
+  currentNotesMap.clear();
+  allNotes.forEach(n => currentNotesMap.set(String(n.id), n));
+
   notesContainer.innerHTML = allNotes.map((n, idx) => {
     const isDrive = Boolean(n.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(n.fileUrl)));
     const safeUrl = sanitizeUrl(n.fileUrl);
-    const safePreviewUrl = (isDrive && n.previewUrl) ? sanitizeUrl(n.previewUrl) : (isDrive && typeof GDrive !== 'undefined' ? GDrive.toEmbeddableUrl(safeUrl) : safeUrl);
-    const safeDriveUrl = (isDrive && n.driveViewUrl) ? sanitizeUrl(n.driveViewUrl) : (isDrive && typeof GDrive !== 'undefined' ? GDrive.getViewUrl(GDrive.extractId(safeUrl)) : '');
     const safeId = sanitizeFilename(n.id || `note-${idx}`);
     const isSyl = n.isSyllabus || (n.subjectId === 'syllabus') || (n.id && n.id.includes('syl'));
+    const safeNoteKey = esc(String(n.id || idx));
     return `
     <div class="note-card ${isSyl ? 'syllabus-card' : ''} ${isDrive ? 'gdrive-card' : ''}">
       <div class="note-card-top">
         <div>
           <div style="font-size: 0.72rem; font-weight: 700; color: ${esc(n.subjectColor || '#2563eb')}; margin-bottom: 2px;">
-            ${esc(n.subjectIcon || '💻')} ${esc(n.subjectName)}
+            ${esc(n.subjectIcon || '💻')} ${esc(n.subjectName || 'IT/ITeS Skills')}
           </div>
-          <div class="note-title">${esc(n.title)}</div>
-          <div class="note-hindi-title">${esc(n.hindiTitle)}</div>
+          <div class="note-title">${esc(n.title || 'Untitled Note')}</div>
+          <div class="note-hindi-title">${esc(n.hindiTitle || '')}</div>
         </div>
         <div class="badge-stack">
           ${isDrive ? '<span class="note-badge-gdrive">☁️ DRIVE</span>' : ''}
@@ -260,21 +263,44 @@ function renderNotes() {
       </div>
 
       <div class="note-meta">
-        <span class="note-meta-item">📄 ${esc(n.pages)} Pages</span>
-        <span class="note-meta-item">💾 ${esc(n.fileSize)}</span>
-        <span class="note-meta-item">📅 ${esc(n.uploadedAt)}</span>
+        <span class="note-meta-item">📄 ${esc(n.pages || 'PDF')} Pages</span>
+        <span class="note-meta-item">💾 ${esc(n.fileSize || 'Google Drive')}</span>
+        <span class="note-meta-item">📅 ${esc(n.uploadedAt || 'Synced')}</span>
       </div>
 
       <div class="note-actions">
-        <button class="btn-action btn-view" onclick="openPdfViewer('${safeUrl}', '${esc(n.title)}', '${safePreviewUrl}', '${safeDriveUrl}')">
+        <button class="btn-action btn-view" onclick="handleViewNote('${safeNoteKey}')">
           👁️ View Notes
         </button>
-        <a class="btn-action btn-download" href="${safeUrl}" download="${safeId}" ${isDrive ? 'target="_blank" rel="noopener noreferrer"' : ''} onclick="trackDownload('${esc(n.title)}')">
+        <a class="btn-action btn-download" href="${safeUrl}" download="${safeId}" ${isDrive ? 'target="_blank" rel="noopener noreferrer"' : ''} onclick="handleDownloadClick('${safeNoteKey}')">
           📥 Download
         </a>
       </div>
     </div>
   `}).join('');
+}
+
+// Quote-safe Note Action Handlers
+function handleViewNote(noteId) {
+  const note = currentNotesMap.get(String(noteId));
+  if (!note) return;
+  const isDrive = Boolean(note.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(note.fileUrl)));
+  const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
+  const safeUrl = sanitizeUrl(note.fileUrl);
+  const safePreviewUrl = (isDrive && note.previewUrl)
+    ? sanitizeUrl(note.previewUrl)
+    : (isDrive && typeof GDrive !== 'undefined' ? GDrive.toEmbeddableUrl(safeUrl) : safeUrl);
+  const safeDriveUrl = (isDrive && note.driveViewUrl)
+    ? sanitizeUrl(note.driveViewUrl)
+    : (isDrive && typeof GDrive !== 'undefined' ? GDrive.getViewUrl(GDrive.extractId(safeUrl)) : '');
+
+  openPdfViewer(safeUrl, note.title, safePreviewUrl, safeDriveUrl);
+}
+
+function handleDownloadClick(noteId) {
+  const note = currentNotesMap.get(String(noteId));
+  const title = note ? note.title : 'Study Note';
+  trackDownload(title);
 }
 
 // PDF Viewer Modal
@@ -323,7 +349,6 @@ function openPdfViewer(url, title, customPreviewUrl = null, customDriveUrl = nul
 
   if (pdfModal) pdfModal.classList.add('active');
   document.body.style.overflow = 'hidden';
-}
 }
 
 function closePdfViewer() {
@@ -383,4 +408,6 @@ if (typeof window !== 'undefined') {
   window.trackDownload = trackDownload;
   window.showToast = showToast;
   window.reloadAllData = reloadAllData;
+  window.handleViewNote = handleViewNote;
+  window.handleDownloadClick = handleDownloadClick;
 }
