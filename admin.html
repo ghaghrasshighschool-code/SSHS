@@ -469,9 +469,10 @@
           <div class="card-header">
             <div>
               <h3 class="card-title">Manage Study Material Library</h3>
-              <p class="card-sub">Review, preview, or remove uploaded notes across all 4 classes.</p>
+              <p class="card-sub">Review, preview, or bulk delete uploaded notes across all classes.</p>
             </div>
-            <div class="manage-filters">
+            <div class="manage-filters" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <input type="search" id="manageSearchInput" class="form-input text-sm" placeholder="🔍 Search notes..." oninput="renderManageTable()" style="max-width: 200px; padding: 6px 10px;">
               <select id="manageClassFilter" class="form-select text-sm" onchange="renderManageTable()">
                 <option value="all">All Classes</option>
                 <option value="9th">Class 9th</option>
@@ -482,11 +483,30 @@
             </div>
           </div>
 
+          <!-- Bulk Action Toolbar (Active when 1 or more notes are checked) -->
+          <div id="bulkDeleteToolbar" class="bulk-toolbar" style="display: none;">
+            <div class="bulk-toolbar-info">
+              <span class="bulk-count-badge" id="selectedNotesCount">0</span>
+              <span>note(s) selected</span>
+            </div>
+            <div class="bulk-toolbar-actions">
+              <button type="button" class="btn-secondary text-xs" onclick="deselectAllNotes()">
+                ✕ Deselect All
+              </button>
+              <button type="button" class="btn-danger text-xs" id="btnDeleteSelected" onclick="handleBulkDeleteNotes()">
+                🗑️ Bulk Delete Selected (<span id="btnDeleteCount">0</span>)
+              </button>
+            </div>
+          </div>
+
           <!-- Notes Table Container -->
           <div class="table-responsive">
             <table class="admin-table">
               <thead>
                 <tr>
+                  <th style="width: 38px; text-align: center;">
+                    <input type="checkbox" id="selectAllNotes" onchange="toggleSelectAllNotes(this)" title="Select/Deselect all visible notes" style="width: 16px; height: 16px; cursor: pointer; accent-color: #dc2626;">
+                  </th>
                   <th>Class</th>
                   <th>Subject</th>
                   <th>Chapter Title</th>

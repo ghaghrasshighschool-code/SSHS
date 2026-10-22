@@ -662,11 +662,13 @@ async function handleNoteUpload(e) {
 }
 
 // ==============================================
-// 6. MANAGE NOTES TABLE (SANITIZED RENDERING)
+// 6. MANAGE NOTES TABLE (SANITIZED RENDERING & BULK DELETE)
 // ==============================================
 async function renderManageTable() {
   const tbody = document.getElementById('manageNotesBody');
   const classFilter = document.getElementById('manageClassFilter').value;
+  const searchInput = document.getElementById('manageSearchInput');
+  const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
   const mergedData = await getMergedClassesData();
   const customIds = new Set(getCustomNotes().map(n => n.id));
 
@@ -680,6 +682,14 @@ async function renderManageTable() {
 
     mergedData[classKey].subjects.forEach(subject => {
       subject.notes.forEach(note => {
+        // Apply search filter if specified
+        if (searchTerm) {
+          const matchTitle = (note.title || '').toLowerCase().includes(searchTerm);
+          const matchHindi = (note.hindiTitle || '').toLowerCase().includes(searchTerm);
+          const matchSubject = (subject.name || '').toLowerCase().includes(searchTerm);
+          if (!matchTitle && !matchHindi && !matchSubject) return;
+        }
+
         const isDrive = Boolean(note.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(note.fileUrl)));
         const isCustom = customIds.has(note.id);
         const safeUrl = sanitizeUrl(note.fileUrl);
@@ -695,6 +705,9 @@ async function renderManageTable() {
 
         rows.push(`
           <tr>
+            <td style="text-align: center;">
+              <input type="checkbox" class="note-select-cb" value="${esc(note.id)}" data-custom="${isCustom}" data-drive="${isDrive}" onchange="updateBulkDeleteState()" style="width: 16px; height: 16px; cursor: pointer; accent-color: #dc2626;">
+            </td>
             <td><span class="class-tag class-tag-${esc(classKey)}">${esc(classKey)}</span></td>
             <td><strong>${esc(subject.name)}</strong></td>
             <td>
@@ -719,10 +732,124 @@ async function renderManageTable() {
   }
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #94a3b8;">No notes found for selected class.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #94a3b8;">No notes found matching your criteria.</td></tr>`;
   } else {
     tbody.innerHTML = rows.join('');
   }
+
+  // Reset master checkbox and bulk delete state after re-render
+  const master = document.getElementById('selectAllNotes');
+  if (master) {
+    master.checked = false;
+    master.indeterminate = false;
+  }
+  updateBulkDeleteState();
+}
+
+// Checkbox selection handlers for Bulk Delete
+function toggleSelectAllNotes(master) {
+  const checkboxes = document.querySelectorAll('.note-select-cb');
+  checkboxes.forEach(cb => {
+    cb.checked = master.checked;
+  });
+  updateBulkDeleteState();
+}
+
+function updateBulkDeleteState() {
+  const checked = document.querySelectorAll('.note-select-cb:checked');
+  const total = document.querySelectorAll('.note-select-cb');
+  const toolbar = document.getElementById('bulkDeleteToolbar');
+  const countBadge = document.getElementById('selectedNotesCount');
+  const btnCount = document.getElementById('btnDeleteCount');
+  const master = document.getElementById('selectAllNotes');
+
+  if (toolbar) {
+    toolbar.style.display = checked.length > 0 ? 'flex' : 'none';
+  }
+  if (countBadge) countBadge.textContent = checked.length;
+  if (btnCount) btnCount.textContent = checked.length;
+
+  if (master) {
+    master.checked = total.length > 0 && checked.length === total.length;
+    master.indeterminate = checked.length > 0 && checked.length < total.length;
+  }
+}
+
+function deselectAllNotes() {
+  const master = document.getElementById('selectAllNotes');
+  if (master) {
+    master.checked = false;
+    master.indeterminate = false;
+  }
+  document.querySelectorAll('.note-select-cb').forEach(cb => {
+    cb.checked = false;
+  });
+  updateBulkDeleteState();
+}
+
+async function handleBulkDeleteNotes() {
+  const checkedBoxes = Array.from(document.querySelectorAll('.note-select-cb:checked'));
+  if (checkedBoxes.length === 0) {
+    alert('Please select at least one note to delete.');
+    return;
+  }
+
+  const count = checkedBoxes.length;
+  if (!confirm(`Are you sure you want to permanently delete these ${count} selected note(s)?\n\nThis will remove them from the student notes portal.`)) {
+    return;
+  }
+
+  const customIdsToDelete = [];
+  const driveIdsToDelete = [];
+  const defaultIdsToDelete = [];
+
+  checkedBoxes.forEach(cb => {
+    const id = cb.value;
+    const isCustom = cb.getAttribute('data-custom') === 'true';
+    const isDrive = cb.getAttribute('data-drive') === 'true';
+
+    if (isDrive) {
+      driveIdsToDelete.push(id);
+    } else if (isCustom) {
+      customIdsToDelete.push(id);
+    } else {
+      defaultIdsToDelete.push(id);
+    }
+  });
+
+  // 1. Process custom uploaded notes (localStorage + IndexedDB Blobs)
+  if (customIdsToDelete.length > 0) {
+    const customIdSet = new Set(customIdsToDelete);
+    let custom = getCustomNotes();
+    custom = custom.filter(n => !customIdSet.has(n.id));
+    saveCustomNotes(custom);
+
+    await Promise.all(customIdsToDelete.map(id => deletePdfBlob(id)));
+  }
+
+  // 2. Process Google Drive synced notes
+  if (driveIdsToDelete.length > 0) {
+    if (typeof GDrive !== 'undefined') {
+      const driveNotes = GDrive.getDriveNotes();
+      const driveIdSet = new Set(driveIdsToDelete);
+      const filtered = driveNotes.filter(n => !driveIdSet.has(n.id));
+      GDrive.saveDriveNotes(filtered);
+    }
+  }
+
+  // 3. Mark in deleted note IDs list so they don't resurface
+  const allIdsToHide = [...driveIdsToDelete, ...defaultIdsToDelete];
+  if (allIdsToHide.length > 0) {
+    const deleted = getDeletedNoteIds();
+    const deletedSet = new Set(deleted);
+    allIdsToHide.forEach(id => deletedSet.add(id));
+    saveDeletedNoteIds(Array.from(deletedSet));
+  }
+
+  showToast(`🗑️ Successfully deleted ${count} note(s)!`);
+  deselectAllNotes();
+  await renderManageTable();
+  await loadDashboardData();
 }
 
 async function deleteNote(noteId, isCustom, isDrive = false) {
@@ -1176,6 +1303,10 @@ if (typeof window !== 'undefined') {
   window.executeBulkUpload = executeBulkUpload;
   window.renderManageTable = renderManageTable;
   window.deleteNote = deleteNote;
+  window.toggleSelectAllNotes = toggleSelectAllNotes;
+  window.updateBulkDeleteState = updateBulkDeleteState;
+  window.deselectAllNotes = deselectAllNotes;
+  window.handleBulkDeleteNotes = handleBulkDeleteNotes;
   window.handleAddNotice = handleAddNotice;
   window.deleteNotice = deleteNotice;
   window.downloadUpdatedDataJs = downloadUpdatedDataJs;
