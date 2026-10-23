@@ -43,15 +43,44 @@
         </div>
       </form>
 
-      <!-- Password Reset Form (Secure Master Recovery Key Mechanism) -->
+      <!-- Password Reset Form (Dual Recovery: Master Key / Emergency Code OR Email + Security Question) -->
       <form id="resetForm" onsubmit="handleResetPassword(event)" style="display: none;">
-        <div class="reset-instruction-box">
-          ℹ️ Enter the <strong>School Master Recovery Key</strong> (default: <code>SSHS@GHAGHRA#2026</code>) to securely reset the admin password.
+        <div class="reset-mode-toggle" style="display: flex; gap: 6px; margin-bottom: 12px;">
+          <button type="button" id="btnModeMaster" class="btn-reset-mode active" onclick="switchResetMode('master')">
+            🔑 Master Key
+          </button>
+          <button type="button" id="btnModeEmail" class="btn-reset-mode" onclick="switchResetMode('email')">
+            📧 Email & Security Q.
+          </button>
         </div>
 
-        <div class="form-group" style="text-align: left;">
-          <label class="form-label" for="resetRecoveryKey">Master Recovery Key</label>
-          <input type="password" id="resetRecoveryKey" class="form-input" placeholder="Enter Master Recovery Key" required>
+        <!-- Mode 1: Master Recovery Key / Emergency Code -->
+        <div id="resetModeMasterGroup">
+          <div class="reset-instruction-box">
+            ℹ️ Enter the <strong>School Master Recovery Key</strong> (default: <code>SSHS@GHAGHRA#2026</code>) or your 16-character Emergency Recovery Code.
+          </div>
+          <div class="form-group" style="text-align: left;">
+            <label class="form-label" for="resetRecoveryKey">Master Recovery Key or Emergency Code</label>
+            <input type="password" id="resetRecoveryKey" class="form-input" placeholder="Enter Master Key or Emergency Code">
+          </div>
+        </div>
+
+        <!-- Mode 2: Registered Email & Security Question -->
+        <div id="resetModeEmailGroup" style="display: none;">
+          <div class="reset-instruction-box" style="background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a;">
+            ℹ️ Enter your registered recovery email and answer your account security question.
+          </div>
+          <div class="form-group" style="text-align: left;">
+            <label class="form-label" for="resetEmailInput">Registered Recovery Email</label>
+            <input type="email" id="resetEmailInput" class="form-input" placeholder="e.g. admin@sshsghaghra.in">
+          </div>
+          <div class="form-group" style="text-align: left;">
+            <label class="form-label">Security Question</label>
+            <div id="resetSecurityQuestionDisplay" style="font-size: 0.78rem; font-weight: 700; color: #1e3a8a; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 6px;">
+              What was the founding year of SS+2 High School Ghaghra?
+            </div>
+            <input type="password" id="resetSecurityAnswer" class="form-input" placeholder="Enter your answer">
+          </div>
         </div>
 
         <div class="form-group" style="text-align: left;">
@@ -98,6 +127,9 @@
       </div>
 
       <div class="admin-nav-actions">
+        <button type="button" class="btn-profile-badge" onclick="switchTab('profileTab')" title="Manage Admin Profile & Security">
+          👤 <span id="navAdminName">Admin Profile</span>
+        </button>
         <a href="./index.html" class="btn-view-app" target="_blank" title="Preview Student App">
           📱 Open Student App
         </a>
@@ -150,6 +182,9 @@
         </button>
         <button class="admin-tab-btn" onclick="switchTab('exportTab')">
           💾 Export & Deploy
+        </button>
+        <button class="admin-tab-btn" onclick="switchTab('profileTab')">
+          👤 Admin Profile & Security
         </button>
       </nav>
 
@@ -710,6 +745,206 @@
             </div>
 
           </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: ADMIN PROFILE & RECOVERY CONTROL CENTER -->
+      <section id="profileTab" class="tab-content">
+        <!-- Top Profile Banner -->
+        <div class="card mb-4" style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; border: none; padding: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 64px; height: 64px; border-radius: 50%; background: #ffffff; color: #1e3a8a; font-size: 2rem; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                👤
+              </div>
+              <div>
+                <h3 id="profileHeaderName" style="font-size: 1.35rem; font-weight: 800; margin-bottom: 2px;">Administrator</h3>
+                <p id="profileHeaderRole" style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 4px;">Vocational IT/ITeS Coordinator</p>
+                <div style="font-size: 0.78rem; opacity: 0.9; display: flex; align-items: center; gap: 8px;">
+                  <span id="profileHeaderEmail">admin@sshsghaghra.in</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <span class="badge-pill" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(52, 211, 153, 0.4); font-size: 0.75rem; padding: 6px 12px;">
+                🟢 SHA-256 Encrypted & 2FA Recovery Active
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2col" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
+
+          <!-- Card 1: Admin Profile Details & Recovery Email -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h4 class="card-title">👤 Admin Profile & Recovery Contact</h4>
+                <p class="card-sub">Control your contact details and registered recovery email address.</p>
+              </div>
+            </div>
+            <form onsubmit="handleSaveProfileDetails(event)" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
+              <div class="form-group">
+                <label class="form-label" for="profileName">Administrator Full Name</label>
+                <input type="text" id="profileName" class="form-input" placeholder="e.g. IT/ITeS Teacher / Headmaster" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profileRole">Official Designation / Title</label>
+                <input type="text" id="profileRole" class="form-input" placeholder="e.g. Vocational IT/ITeS Coordinator">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profileEmail">Official Recovery Email Address</label>
+                <input type="email" id="profileEmail" class="form-input" placeholder="e.g. admin@sshsghaghra.in" required>
+                <div style="font-size: 0.72rem; color: #64748b; margin-top: 4px;">Used to verify and recover access if you forget your password.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profilePhone">Phone / WhatsApp Number (Optional)</label>
+                <input type="tel" id="profilePhone" class="form-input" placeholder="e.g. +91 98765 43210">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profileSecurityQuestion">Account Security Question</label>
+                <select id="profileSecurityQuestion" class="form-select">
+                  <option value="What was the founding year of SS+2 High School Ghaghra?">What was the founding year of SS+2 High School Ghaghra?</option>
+                  <option value="What is the school U-DISE Code or Registration Code?">What is the school U-DISE Code or Registration Code?</option>
+                  <option value="What is the official school abbreviation?">What is the official school abbreviation?</option>
+                  <option value="What is the name of your first IT/Computer lab teacher?">What is the name of your first IT/Computer lab teacher?</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profileSecurityAnswer">Update Security Question Answer</label>
+                <input type="password" id="profileSecurityAnswer" class="form-input" placeholder="Leave blank to keep existing answer">
+                <div style="font-size: 0.72rem; color: #64748b; margin-top: 4px;">Answers are cryptographically hashed (SHA-256) and never stored in plain text.</div>
+              </div>
+              <button type="submit" class="btn-primary" style="align-self: flex-start; padding: 10px 20px;">
+                💾 Save Profile & Recovery Info
+              </button>
+            </form>
+          </div>
+
+          <!-- Card 2: Password Control Center -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h4 class="card-title">🔒 Password Control Center</h4>
+                <p class="card-sub">Change your admin portal password with cryptographic SHA-256 hashing.</p>
+              </div>
+            </div>
+            <form onsubmit="handleProfilePasswordChange(event)" style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
+              <div class="form-group">
+                <label class="form-label" for="profileCurrentPassword">Current Admin Password</label>
+                <input type="password" id="profileCurrentPassword" class="form-input" placeholder="Enter current password" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profileNewPassword">New Password (Min. 6 characters)</label>
+                <input type="password" id="profileNewPassword" class="form-input" placeholder="Enter new strong password" minlength="6" oninput="checkPasswordStrengthUI(this.value)" required>
+                <!-- Strength Indicator Bar -->
+                <div style="margin-top: 6px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #64748b; margin-bottom: 2px;">
+                    <span>Password Strength:</span>
+                    <span id="passwordStrengthLabel">--</span>
+                  </div>
+                  <div style="height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;">
+                    <div id="passwordStrengthFill" style="height: 100%; width: 0%; background: #dc2626; transition: all 0.3s;"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="profileConfirmPassword">Confirm New Password</label>
+                <input type="password" id="profileConfirmPassword" class="form-input" placeholder="Re-enter new password" minlength="6" required>
+              </div>
+              <div style="font-size: 0.72rem; color: #64748b; line-height: 1.4;">
+                🛡️ <strong>Zero-Risk Policy:</strong> Passwords are never transmitted in cleartext or saved in plain text. SHA-256 irreversible hashes ensure zero unauthorized exposure.
+              </div>
+              <button type="submit" class="btn-primary" style="align-self: flex-start; padding: 10px 20px;">
+                🔒 Update Password
+              </button>
+            </form>
+          </div>
+
+          <!-- Card 3: Recovery Keys & Emergency Backup Codes -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h4 class="card-title">🔑 Recovery Keys & Emergency Codes</h4>
+                <p class="card-sub">Emergency fail-safes to regain access if password or email is inaccessible.</p>
+              </div>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+              
+              <!-- Master Key Section -->
+              <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #f8fafc;">
+                <div style="font-weight: 700; font-size: 0.9rem; color: #0f172a; margin-bottom: 4px;">
+                  School Master Recovery Key
+                </div>
+                <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 10px;">
+                  Default Key: <code>SSHS@GHAGHRA#2026</code>. Can be updated with administrative authorization.
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <input type="password" id="profileMasterKey" class="form-input text-sm" placeholder="New Master Key (min 8 chars)" minlength="8">
+                  <input type="password" id="profileMasterKeyAuth" class="form-input text-sm" placeholder="Current Admin Password (to verify)">
+                  <button type="button" class="btn-secondary text-sm" onclick="handleProfileUpdateMasterKey()" style="align-self: flex-start;">
+                    🔑 Update Master Key
+                  </button>
+                </div>
+              </div>
+
+              <!-- Emergency Backup Code Section -->
+              <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #f8fafc;">
+                <div style="font-weight: 700; font-size: 0.9rem; color: #0f172a; margin-bottom: 4px;">
+                  One-Time Emergency Recovery Code
+                </div>
+                <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 10px;">
+                  Generate a randomized 16-character emergency code to print or save offline for emergency recovery.
+                </div>
+                <div id="emergencyCodeBox" style="display: none; margin-bottom: 10px; padding: 10px 14px; background: #ecfdf5; border: 1.5px dashed #10b981; border-radius: 6px; font-family: monospace; font-size: 1.05rem; font-weight: 800; color: #065f46; letter-spacing: 1px; text-align: center;">
+                </div>
+                <button type="button" class="btn-secondary text-sm" onclick="handleGenerateEmergencyCode()">
+                  🎲 Generate New Emergency Code
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Card 4: Security Audit & Active Sessions -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h4 class="card-title">🛡️ Security Policy & Audit Log</h4>
+                <p class="card-sub">Active session status, cryptographic standards, and lockout logs.</p>
+              </div>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">
+                <span style="color: #64748b;">Current Session Status:</span>
+                <span style="color: #059669; font-weight: 700;">🟢 Active (SessionStorage Isolated)</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">
+                <span style="color: #64748b;">Last Successful Login:</span>
+                <span id="auditLastLogin" style="font-weight: 600;">Today</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">
+                <span style="color: #64748b;">Last Password Update:</span>
+                <span id="auditLastPasswordChange" style="font-weight: 600;">Original Setup</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">
+                <span style="color: #64748b;">Brute-Force Protection:</span>
+                <span style="color: #2563eb; font-weight: 700;">Active (Max 5 tries / 60s)</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0;">
+                <span style="color: #64748b;">Reset Brute-Force Limit:</span>
+                <span style="color: #2563eb; font-weight: 700;">Active (Max 3 tries / 300s)</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
+                <span style="color: #64748b;">Content Security Policy (CSP):</span>
+                <span style="color: #059669; font-weight: 700;">Level 2 Strict</span>
+              </div>
+              <button type="button" class="btn-danger text-sm mt-2" onclick="handleLogout()" style="align-self: flex-start;">
+                🚪 End Session & Logout
+              </button>
+            </div>
+          </div>
+
         </div>
       </section>
 

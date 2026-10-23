@@ -596,6 +596,39 @@ function escapeHtml(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
+// Discreet / Hidden Admin Portal Access (Hidden from regular students)
+// 1. Five quick taps on the footer title (works on mobile / touchscreen)
+// 2. Keyboard shortcut: Ctrl + Shift + A / Cmd + Shift + A
+(function setupDiscreetAdminAccess() {
+  let tapCount = 0;
+  let tapTimer = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const footerTitle = document.getElementById('schoolFooterTitle');
+    if (footerTitle) {
+      footerTitle.addEventListener('click', () => {
+        tapCount++;
+        clearTimeout(tapTimer);
+        if (tapCount >= 5) {
+          tapCount = 0;
+          showToast('🔐 Opening Teacher / Admin Portal...');
+          setTimeout(() => { window.location.href = './admin.html'; }, 600);
+        } else {
+          tapTimer = setTimeout(() => { tapCount = 0; }, 2500);
+        }
+      });
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+      e.preventDefault();
+      showToast('🔐 Opening Teacher / Admin Portal...');
+      setTimeout(() => { window.location.href = './admin.html'; }, 400);
+    }
+  });
+})();
+
 // Global Browser Window Bindings
 if (typeof window !== 'undefined') {
   window.selectFolderCategory = selectFolderCategory;

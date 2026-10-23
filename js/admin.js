@@ -8,12 +8,27 @@ const DEFAULT_PIN_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa82280
 const DEFAULT_RECOVERY_KEY_HASH = 'fa486e4cf3f3c55909656aca63ae468ba4527fd84c34d3d865760bdf3d7fcce1';
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB maximum file size
 
+// Default Admin Profile & Recovery Configuration
+const DEFAULT_PROFILE = {
+  name: 'Portal Administrator',
+  role: 'Vocational IT/ITeS Coordinator',
+  email: 'admin@sshsghaghra.in',
+  phone: '',
+  securityQuestion: 'What was the founding year of SS+2 High School Ghaghra?',
+  securityAnswerHash: '158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab', // '2026'
+  emergencyCodeHash: null,
+  lastLoginTime: null,
+  lastPasswordChange: null
+};
+
+let currentResetMode = 'master'; // 'master' | 'email'
 let selectedFile = null;
 let bulkFilesQueue = [];
 
 // On Page Load
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
+  loadAdminProfileData();
   updateSubjectDropdown();
   setupDropzone();
   setupBulkDropzone();
@@ -30,6 +45,63 @@ function getMasterRecoveryHash() {
   return localStorage.getItem('sshs_master_recovery_hash') || DEFAULT_RECOVERY_KEY_HASH;
 }
 
+function getAdminProfile() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('sshs_admin_profile') || '{}');
+    return { ...DEFAULT_PROFILE, ...saved };
+  } catch (e) {
+    return { ...DEFAULT_PROFILE };
+  }
+}
+
+function saveAdminProfile(profile) {
+  try {
+    localStorage.setItem('sshs_admin_profile', JSON.stringify(profile));
+  } catch (e) {
+    console.error('Failed to save admin profile:', e);
+  }
+}
+
+function loadAdminProfileData() {
+  const profile = getAdminProfile();
+
+  // Top navbar badge
+  const navName = document.getElementById('navAdminName');
+  if (navName) navName.textContent = profile.name || 'Admin Profile';
+
+  // Profile banner in Profile tab
+  const hName = document.getElementById('profileHeaderName');
+  if (hName) hName.textContent = profile.name || 'Administrator';
+  const hRole = document.getElementById('profileHeaderRole');
+  if (hRole) hRole.textContent = profile.role || 'Vocational IT/ITeS Coordinator';
+  const hEmail = document.getElementById('profileHeaderEmail');
+  if (hEmail) hEmail.textContent = profile.email || 'admin@sshsghaghra.in';
+
+  // Profile form inputs
+  const pName = document.getElementById('profileName');
+  if (pName && !pName.value) pName.value = profile.name || '';
+  const pRole = document.getElementById('profileRole');
+  if (pRole && !pRole.value) pRole.value = profile.role || '';
+  const pEmail = document.getElementById('profileEmail');
+  if (pEmail && !pEmail.value) pEmail.value = profile.email || '';
+  const pPhone = document.getElementById('profilePhone');
+  if (pPhone && !pPhone.value) pPhone.value = profile.phone || '';
+  const pQ = document.getElementById('profileSecurityQuestion');
+  if (pQ && profile.securityQuestion) pQ.value = profile.securityQuestion;
+
+  // Audit Timestamps
+  const aLogin = document.getElementById('auditLastLogin');
+  if (aLogin) aLogin.textContent = profile.lastLoginTime || 'First Session';
+  const aPwd = document.getElementById('auditLastPasswordChange');
+  if (aPwd) aPwd.textContent = profile.lastPasswordChange || 'Original Setup';
+
+  // Login Screen Security Question Display
+  const resetQDisplay = document.getElementById('resetSecurityQuestionDisplay');
+  if (resetQDisplay) {
+    resetQDisplay.textContent = profile.securityQuestion || 'What was the founding year of SS+2 High School Ghaghra?';
+  }
+}
+
 function checkAuth() {
   const isAuth = sessionStorage.getItem('sshs_admin_auth');
   const authScreen = document.getElementById('authScreen');
@@ -39,6 +111,7 @@ function checkAuth() {
     authScreen.style.display = 'none';
     adminDashboard.style.display = 'block';
     loadDashboardData();
+    loadAdminProfileData();
   } else {
     authScreen.style.display = 'flex';
     adminDashboard.style.display = 'none';
@@ -77,6 +150,10 @@ function toggleResetForm(showReset) {
     if (resetForm) {
       resetForm.style.display = 'block';
       checkResetRateLimitUI();
+      switchResetMode('master');
+      const profile = getAdminProfile();
+      const qDisp = document.getElementById('resetSecurityQuestionDisplay');
+      if (qDisp) qDisp.textContent = profile.securityQuestion || 'What was the founding year of SS+2 High School Ghaghra?';
     }
   } else {
     if (resetForm) resetForm.style.display = 'none';
@@ -84,6 +161,31 @@ function toggleResetForm(showReset) {
       authForm.style.display = 'block';
       checkRateLimitUI();
     }
+  }
+}
+
+function switchResetMode(mode) {
+  currentResetMode = mode;
+  const masterGrp = document.getElementById('resetModeMasterGroup');
+  const emailGrp = document.getElementById('resetModeEmailGroup');
+  const btnMaster = document.getElementById('btnModeMaster');
+  const btnEmail = document.getElementById('btnModeEmail');
+  const resetError = document.getElementById('resetError');
+  if (resetError) resetError.classList.remove('show');
+
+  if (mode === 'email') {
+    if (masterGrp) masterGrp.style.display = 'none';
+    if (emailGrp) emailGrp.style.display = 'block';
+    if (btnEmail) btnEmail.classList.add('active');
+    if (btnMaster) btnMaster.classList.remove('active');
+    const profile = getAdminProfile();
+    const qDisp = document.getElementById('resetSecurityQuestionDisplay');
+    if (qDisp) qDisp.textContent = profile.securityQuestion || 'What was the founding year of SS+2 High School Ghaghra?';
+  } else {
+    if (masterGrp) masterGrp.style.display = 'block';
+    if (emailGrp) emailGrp.style.display = 'none';
+    if (btnMaster) btnMaster.classList.add('active');
+    if (btnEmail) btnEmail.classList.remove('active');
   }
 }
 
@@ -130,6 +232,12 @@ async function handleLogin(e) {
     sessionStorage.setItem('sshs_admin_auth', 'true');
     errorEl.classList.remove('show');
     document.getElementById('pinInput').value = '';
+
+    // Record login timestamp
+    const profile = getAdminProfile();
+    profile.lastLoginTime = new Date().toLocaleString();
+    saveAdminProfile(profile);
+
     checkAuth();
     showToast('🔓 Welcome, Administrator');
   } else {
@@ -157,21 +265,15 @@ async function handleResetPassword(e) {
   if (typeof Security !== 'undefined') {
     const status = Security.isRateLimited('admin_reset', 3, 300);
     if (status.limited) {
-      resetError.textContent = `🛑 Too many failed reset attempts. Try again in ${status.remainingSeconds}s.`;
+      resetError.textContent = `🛑 Too many failed reset attempts. Reset locked for ${status.remainingSeconds}s.`;
       resetError.classList.add('show');
       return;
     }
   }
 
-  const recoveryKey = (document.getElementById('resetRecoveryKey').value || '').trim();
+  const profile = getAdminProfile();
   const newPin = (document.getElementById('resetNewPin').value || '').trim();
   const confirmPin = (document.getElementById('resetConfirmPin').value || '').trim();
-
-  if (!recoveryKey) {
-    resetError.textContent = 'Please enter the Master Recovery Key.';
-    resetError.classList.add('show');
-    return;
-  }
 
   if (!newPin || newPin.length < 6) {
     resetError.textContent = 'New password must be at least 6 characters.';
@@ -185,51 +287,282 @@ async function handleResetPassword(e) {
     return;
   }
 
-  const expectedRecoveryHash = getMasterRecoveryHash();
-  const inputRecoveryHash = (typeof Security !== 'undefined') ? await Security.hashString(recoveryKey) : recoveryKey;
+  let isAuthorized = false;
 
-  if (inputRecoveryHash !== expectedRecoveryHash) {
-    let attemptsRemaining = 2;
-    if (typeof Security !== 'undefined') {
-      const rec = Security.recordFailedAttempt('admin_reset', 3, 300);
-      attemptsRemaining = Math.max(0, 3 - rec.attempts);
-      if (rec.locked) {
-        checkResetRateLimitUI();
-        return;
-      }
+  if (currentResetMode === 'email') {
+    const email = (document.getElementById('resetEmailInput').value || '').trim().toLowerCase();
+    const answer = (document.getElementById('resetSecurityAnswer').value || '').trim().toLowerCase();
+
+    if (!email || !answer) {
+      resetError.textContent = 'Please provide both your registered email and answer.';
+      resetError.classList.add('show');
+      return;
     }
-    resetError.textContent = `Invalid Master Recovery Key! ${attemptsRemaining} attempt(s) remaining.`;
-    resetError.classList.add('show');
-    document.getElementById('resetRecoveryKey').value = '';
-    document.getElementById('resetRecoveryKey').focus();
+
+    const regEmail = (profile.email || '').trim().toLowerCase();
+    const answerHash = (typeof Security !== 'undefined') ? await Security.hashString(answer) : answer;
+
+    if (email === regEmail && answerHash === profile.securityAnswerHash) {
+      isAuthorized = true;
+    } else {
+      let attemptsRemaining = 2;
+      if (typeof Security !== 'undefined') {
+        const rec = Security.recordFailedAttempt('admin_reset', 3, 300);
+        attemptsRemaining = Math.max(0, 3 - rec.attempts);
+        if (rec.locked) {
+          checkResetRateLimitUI();
+          return;
+        }
+      }
+      resetError.textContent = `Email or Security Answer incorrect! ${attemptsRemaining} attempt(s) remaining.`;
+      resetError.classList.add('show');
+      return;
+    }
+  } else {
+    // Master Key or Emergency Code Mode
+    const recoveryKey = (document.getElementById('resetRecoveryKey').value || '').trim();
+    if (!recoveryKey) {
+      resetError.textContent = 'Please enter the Master Recovery Key or Emergency Code.';
+      resetError.classList.add('show');
+      return;
+    }
+
+    const expectedRecoveryHash = getMasterRecoveryHash();
+    const inputRecoveryHash = (typeof Security !== 'undefined') ? await Security.hashString(recoveryKey) : recoveryKey;
+
+    if (inputRecoveryHash === expectedRecoveryHash || (profile.emergencyCodeHash && inputRecoveryHash === profile.emergencyCodeHash)) {
+      isAuthorized = true;
+      // Invalidate one-time emergency code after usage
+      if (profile.emergencyCodeHash && inputRecoveryHash === profile.emergencyCodeHash) {
+        profile.emergencyCodeHash = null;
+      }
+    } else {
+      let attemptsRemaining = 2;
+      if (typeof Security !== 'undefined') {
+        const rec = Security.recordFailedAttempt('admin_reset', 3, 300);
+        attemptsRemaining = Math.max(0, 3 - rec.attempts);
+        if (rec.locked) {
+          checkResetRateLimitUI();
+          return;
+        }
+      }
+      resetError.textContent = `Invalid Master Recovery Key or Emergency Code! ${attemptsRemaining} attempt(s) remaining.`;
+      resetError.classList.add('show');
+      document.getElementById('resetRecoveryKey').value = '';
+      document.getElementById('resetRecoveryKey').focus();
+      return;
+    }
+  }
+
+  if (isAuthorized) {
+    // Hash new password and save
+    const newHash = (typeof Security !== 'undefined') ? await Security.hashString(newPin) : newPin;
+    localStorage.setItem('sshs_admin_pin_hash', newHash);
+
+    // Update password change audit timestamp
+    profile.lastPasswordChange = new Date().toLocaleString();
+    saveAdminProfile(profile);
+
+    // Clear rate limits
+    if (typeof Security !== 'undefined') {
+      Security.resetRateLimit('admin_reset');
+      Security.resetRateLimit('admin_login');
+    }
+
+    // Reset form fields
+    if (document.getElementById('resetRecoveryKey')) document.getElementById('resetRecoveryKey').value = '';
+    if (document.getElementById('resetEmailInput')) document.getElementById('resetEmailInput').value = '';
+    if (document.getElementById('resetSecurityAnswer')) document.getElementById('resetSecurityAnswer').value = '';
+    document.getElementById('resetNewPin').value = '';
+    document.getElementById('resetConfirmPin').value = '';
+
+    toggleResetForm(false);
+    showToast('✅ Admin Password successfully reset! Please log in.');
+    const authError = document.getElementById('authError');
+    if (authError) {
+      authError.textContent = '✅ Password successfully updated! Enter your new password below.';
+      authError.style.color = '#059669';
+      authError.classList.add('show');
+      setTimeout(() => {
+        authError.classList.remove('show');
+        authError.style.color = '#dc2626';
+      }, 5000);
+    }
+  }
+}
+
+async function handleSaveProfileDetails(e) {
+  if (e) e.preventDefault();
+  const name = (document.getElementById('profileName').value || '').trim();
+  const role = (document.getElementById('profileRole').value || '').trim();
+  const email = (document.getElementById('profileEmail').value || '').trim();
+  const phone = (document.getElementById('profilePhone').value || '').trim();
+  const question = document.getElementById('profileSecurityQuestion').value;
+  const answer = (document.getElementById('profileSecurityAnswer').value || '').trim();
+
+  if (!email || !email.includes('@')) {
+    showToast('⚠️ Please enter a valid recovery email address.');
     return;
   }
 
-  // Key is valid! Hash new password and save
+  const profile = getAdminProfile();
+  profile.name = name || 'Portal Administrator';
+  profile.role = role || 'Vocational IT/ITeS Coordinator';
+  profile.email = email;
+  profile.phone = phone;
+  profile.securityQuestion = question;
+
+  if (answer) {
+    profile.securityAnswerHash = (typeof Security !== 'undefined') ? await Security.hashString(answer.toLowerCase()) : answer.toLowerCase();
+    document.getElementById('profileSecurityAnswer').value = '';
+  }
+
+  saveAdminProfile(profile);
+  loadAdminProfileData();
+  showToast('✅ Admin Profile & Recovery details saved successfully!');
+}
+
+async function handleProfilePasswordChange(e) {
+  if (e) e.preventDefault();
+  const currentPin = (document.getElementById('profileCurrentPassword').value || '').trim();
+  const newPin = (document.getElementById('profileNewPassword').value || '').trim();
+  const confirmPin = (document.getElementById('profileConfirmPassword').value || '').trim();
+
+  if (!currentPin) {
+    showToast('⚠️ Please enter your current admin password.');
+    return;
+  }
+
+  if (!newPin || newPin.length < 6) {
+    showToast('⚠️ New password must be at least 6 characters long.');
+    return;
+  }
+
+  if (newPin !== confirmPin) {
+    showToast('⚠️ New passwords do not match. Please verify.');
+    return;
+  }
+
+  const storedHash = getAdminPinHash();
+  const currentHash = (typeof Security !== 'undefined') ? await Security.hashString(currentPin) : currentPin;
+
+  if (currentHash !== storedHash) {
+    showToast('❌ Current password incorrect. Cannot update password.');
+    return;
+  }
+
+  if (currentPin === newPin) {
+    showToast('⚠️ New password must be different from current password.');
+    return;
+  }
+
   const newHash = (typeof Security !== 'undefined') ? await Security.hashString(newPin) : newPin;
   localStorage.setItem('sshs_admin_pin_hash', newHash);
 
-  // Clear rate limits
-  if (typeof Security !== 'undefined') {
-    Security.resetRateLimit('admin_reset');
-    Security.resetRateLimit('admin_login');
+  const profile = getAdminProfile();
+  profile.lastPasswordChange = new Date().toLocaleString();
+  saveAdminProfile(profile);
+
+  document.getElementById('profileCurrentPassword').value = '';
+  document.getElementById('profileNewPassword').value = '';
+  document.getElementById('profileConfirmPassword').value = '';
+  const fill = document.getElementById('passwordStrengthFill');
+  if (fill) fill.style.width = '0%';
+  const lbl = document.getElementById('passwordStrengthLabel');
+  if (lbl) lbl.textContent = '--';
+
+  loadAdminProfileData();
+  showToast('🔐 Admin Password successfully changed and cryptographically hashed (SHA-256)!');
+}
+
+async function handleProfileUpdateMasterKey() {
+  const newKey = (document.getElementById('profileMasterKey').value || '').trim();
+  const authPin = (document.getElementById('profileMasterKeyAuth').value || '').trim();
+
+  if (!newKey || newKey.length < 8) {
+    showToast('⚠️ Master Recovery Key must be at least 8 characters long.');
+    return;
   }
 
-  document.getElementById('resetRecoveryKey').value = '';
-  document.getElementById('resetNewPin').value = '';
-  document.getElementById('resetConfirmPin').value = '';
+  if (!authPin) {
+    showToast('⚠️ Enter current admin password to authorize this security change.');
+    return;
+  }
 
-  toggleResetForm(false);
-  showToast('✅ Admin Password successfully reset! Please log in.');
-  const authError = document.getElementById('authError');
-  if (authError) {
-    authError.textContent = '✅ Password successfully updated! Enter your new password below.';
-    authError.style.color = '#059669';
-    authError.classList.add('show');
-    setTimeout(() => {
-      authError.classList.remove('show');
-      authError.style.color = '#dc2626';
-    }, 5000);
+  const storedPinHash = getAdminPinHash();
+  const inputPinHash = (typeof Security !== 'undefined') ? await Security.hashString(authPin) : authPin;
+
+  if (inputPinHash !== storedPinHash) {
+    showToast('❌ Incorrect admin password. Authorization failed.');
+    return;
+  }
+
+  const newRecoveryHash = (typeof Security !== 'undefined') ? await Security.hashString(newKey) : newKey;
+  localStorage.setItem('sshs_master_recovery_hash', newRecoveryHash);
+
+  document.getElementById('profileMasterKey').value = '';
+  document.getElementById('profileMasterKeyAuth').value = '';
+
+  showToast('🔑 School Master Recovery Key updated successfully!');
+}
+
+async function handleGenerateEmergencyCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function seg(n) {
+    let s = '';
+    for (let i = 0; i < n; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+  }
+  const code = `SSHS-${seg(4)}-${seg(4)}-${seg(4)}`;
+
+  const codeHash = (typeof Security !== 'undefined') ? await Security.hashString(code) : code;
+  const profile = getAdminProfile();
+  profile.emergencyCodeHash = codeHash;
+  saveAdminProfile(profile);
+
+  const box = document.getElementById('emergencyCodeBox');
+  if (box) {
+    box.textContent = code;
+    box.style.display = 'block';
+  }
+
+  showToast('🎲 Emergency recovery code generated! Please save it securely.');
+}
+
+function checkPasswordStrengthUI(val) {
+  const fill = document.getElementById('passwordStrengthFill');
+  const label = document.getElementById('passwordStrengthLabel');
+  if (!fill || !label) return;
+
+  if (!val) {
+    fill.style.width = '0%';
+    label.textContent = '--';
+    return;
+  }
+
+  let score = 0;
+  if (val.length >= 6) score += 25;
+  if (val.length >= 10) score += 25;
+  if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score += 25;
+  if (/[0-9]/.test(val) && /[^a-zA-Z0-9]/.test(val)) score += 25;
+
+  fill.style.width = `${score}%`;
+  if (score <= 25) {
+    fill.style.background = '#dc2626';
+    label.textContent = 'Weak';
+    label.style.color = '#dc2626';
+  } else if (score <= 50) {
+    fill.style.background = '#f59e0b';
+    label.textContent = 'Fair';
+    label.style.color = '#d97706';
+  } else if (score <= 75) {
+    fill.style.background = '#2563eb';
+    label.textContent = 'Good';
+    label.style.color = '#2563eb';
+  } else {
+    fill.style.background = '#059669';
+    label.textContent = 'Strong 🔒';
+    label.style.color = '#059669';
   }
 }
 
@@ -322,13 +655,15 @@ function switchTab(tabId) {
   const activeContent = document.getElementById(tabId);
   if (activeContent) activeContent.classList.add('active');
 
-  const btnIndex = ['bulkUploadTab', 'gdriveTab', 'uploadTab', 'manageTab', 'noticesTab', 'exportTab'].indexOf(tabId);
+  const tabList = ['bulkUploadTab', 'gdriveTab', 'uploadTab', 'manageTab', 'noticesTab', 'exportTab', 'profileTab'];
+  const btnIndex = tabList.indexOf(tabId);
   const buttons = document.querySelectorAll('.admin-tab-btn');
   if (buttons[btnIndex]) buttons[btnIndex].classList.add('active');
 
   if (tabId === 'gdriveTab') loadGDriveTab();
   if (tabId === 'manageTab') renderManageTable();
   if (tabId === 'noticesTab') renderManageNotices();
+  if (tabId === 'profileTab') loadAdminProfileData();
 }
 
 async function loadDashboardData() {
@@ -1522,8 +1857,15 @@ if (typeof window !== 'undefined') {
   window.toggleSetupGuide = toggleSetupGuide;
   window.copyAppsScriptCode = copyAppsScriptCode;
   window.toggleResetForm = toggleResetForm;
+  window.switchResetMode = switchResetMode;
   window.handleResetPassword = handleResetPassword;
   window.handleChangePassword = handleChangePassword;
   window.handleChangePin = handleChangePassword; // Backward-compatible alias
   window.handleUpdateRecoveryKey = handleUpdateRecoveryKey;
+  window.handleSaveProfileDetails = handleSaveProfileDetails;
+  window.handleProfilePasswordChange = handleProfilePasswordChange;
+  window.handleProfileUpdateMasterKey = handleProfileUpdateMasterKey;
+  window.handleGenerateEmergencyCode = handleGenerateEmergencyCode;
+  window.checkPasswordStrengthUI = checkPasswordStrengthUI;
+  window.loadAdminProfileData = loadAdminProfileData;
 }
