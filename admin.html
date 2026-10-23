@@ -29,12 +29,51 @@
 
       <form id="authForm" onsubmit="handleLogin(event)">
         <div class="form-group">
-          <label class="form-label" for="pinInput">Enter Admin PIN</label>
-          <input type="password" id="pinInput" class="form-input text-center" placeholder="Default PIN: admin123" required autofocus>
+          <label class="form-label" for="pinInput">Enter Admin PIN / Password</label>
+          <input type="password" id="pinInput" class="form-input text-center" placeholder="Enter Admin Password" required autofocus>
           <div id="authError" class="auth-error">Incorrect PIN. Please try again.</div>
         </div>
 
         <button type="submit" class="btn-primary w-full">Unlock Dashboard</button>
+
+        <div style="text-align: center; margin-top: 12px;">
+          <button type="button" class="btn-link-forgot" onclick="toggleResetForm(true)">
+            🔑 Forgot Password / Reset PIN?
+          </button>
+        </div>
+      </form>
+
+      <!-- Password Reset Form (Secure Master Recovery Key Mechanism) -->
+      <form id="resetForm" onsubmit="handleResetPassword(event)" style="display: none;">
+        <div class="reset-instruction-box">
+          ℹ️ Enter the <strong>School Master Recovery Key</strong> (default: <code>SSHS@GHAGHRA#2026</code>) to securely reset the admin password.
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="resetRecoveryKey">Master Recovery Key</label>
+          <input type="password" id="resetRecoveryKey" class="form-input" placeholder="Enter Master Recovery Key" required>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="resetNewPin">New Admin Password</label>
+          <input type="password" id="resetNewPin" class="form-input" placeholder="Min. 6 characters" minlength="6" required>
+        </div>
+
+        <div class="form-group" style="text-align: left;">
+          <label class="form-label" for="resetConfirmPin">Confirm New Password</label>
+          <input type="password" id="resetConfirmPin" class="form-input" placeholder="Re-enter new password" minlength="6" required>
+          <div id="resetError" class="auth-error"></div>
+        </div>
+
+        <button type="submit" id="btnSubmitReset" class="btn-primary w-full" style="background: #059669;">
+          🔄 Reset & Set New Password
+        </button>
+
+        <div style="text-align: center; margin-top: 12px;">
+          <button type="button" class="btn-link-forgot" onclick="toggleResetForm(false)">
+            ← Back to Login
+          </button>
+        </div>
       </form>
 
       <div class="auth-footer">
@@ -626,14 +665,35 @@
               </div>
             </div>
 
+            <!-- Change Password Card -->
             <div class="export-box">
               <div class="export-icon">🔐</div>
-              <div class="export-content">
-                <h4>Update Admin PIN</h4>
-                <p>Change your portal PIN. PINs are cryptographically hashed with SHA-256 and never stored in cleartext.</p>
-                <div class="flex-gap mt-2" style="max-width: 320px;">
-                  <input type="password" id="newPinInput" class="form-input text-sm" placeholder="Enter new PIN (min 6 chars)">
-                  <button class="btn-primary text-sm" onclick="handleChangePin()">Save PIN</button>
+              <div class="export-content" style="width: 100%;">
+                <h4>Change Admin Password</h4>
+                <p>Update your admin password. Requires your current password for security verification. All passwords are cryptographically hashed (SHA-256) and never stored in plain text.</p>
+                <div style="max-width: 360px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                  <input type="password" id="currentPinInput" class="form-input text-sm" placeholder="Current Admin Password" required>
+                  <input type="password" id="newPinInput" class="form-input text-sm" placeholder="New Password (min 6 chars)" minlength="6" required>
+                  <input type="password" id="confirmPinInput" class="form-input text-sm" placeholder="Confirm New Password" minlength="6" required>
+                  <button class="btn-primary text-sm" onclick="handleChangePassword()" style="align-self: flex-start; padding: 8px 16px;">
+                    🔒 Update Password
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Master Recovery Key Card -->
+            <div class="export-box">
+              <div class="export-icon">🔑</div>
+              <div class="export-content" style="width: 100%;">
+                <h4>School Master Recovery Key</h4>
+                <p>The Master Recovery Key allows resetting the admin password if forgotten (default: <code>SSHS@GHAGHRA#2026</code>). You can customize this key anytime below.</p>
+                <div style="max-width: 360px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                  <input type="password" id="newRecoveryKeyInput" class="form-input text-sm" placeholder="New Master Recovery Key (min 8 chars)" minlength="8" required>
+                  <input type="password" id="recoveryAdminPinInput" class="form-input text-sm" placeholder="Current Admin Password (to authorize)" required>
+                  <button class="btn-secondary text-sm" onclick="handleUpdateRecoveryKey()" style="align-self: flex-start; padding: 8px 16px;">
+                    🔑 Update Recovery Key
+                  </button>
                 </div>
               </div>
             </div>

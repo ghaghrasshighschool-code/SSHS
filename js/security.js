@@ -79,7 +79,14 @@ const Security = {
 
   // 5. Cryptographic SHA-256 Hashing for Admin PIN (Never store or compare plaintext PIN)
   async hashString(value) {
-    if (!window.crypto || !window.crypto.subtle) {
+    const cryptoObj = (typeof window !== 'undefined' && window.crypto) ? window.crypto : (typeof crypto !== 'undefined' ? crypto : null);
+    if (!cryptoObj || !cryptoObj.subtle) {
+      if (typeof require !== 'undefined') {
+        try {
+          const nodeCrypto = require('crypto');
+          return nodeCrypto.createHash('sha256').update(value).digest('hex');
+        } catch (e) {}
+      }
       // Fallback simple hash if Web Crypto unavailable
       let hash = 0;
       for (let i = 0; i < value.length; i++) {
@@ -90,7 +97,7 @@ const Security = {
     }
     const encoder = new TextEncoder();
     const data = encoder.encode(value);
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await cryptoObj.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   },

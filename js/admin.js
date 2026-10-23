@@ -4,6 +4,8 @@
 
 // Default PIN is 'admin123' (stored strictly as SHA-256 hash, never in cleartext)
 const DEFAULT_PIN_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
+// Default School Master Recovery Key is 'SSHS@GHAGHRA#2026' (stored strictly as SHA-256 hash)
+const DEFAULT_RECOVERY_KEY_HASH = 'fa486e4cf3f3c55909656aca63ae468ba4527fd84c34d3d865760bdf3d7fcce1';
 const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB maximum file size
 
 let selectedFile = null;
@@ -18,10 +20,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==============================================
-// 1. AUTHENTICATION & PIN SECURITY (SHA-256 + RATE LIMITING)
+// 1. AUTHENTICATION & PIN SECURITY (SHA-256 + RATE LIMITING + RECOVERY KEY)
 // ==============================================
 function getAdminPinHash() {
   return localStorage.getItem('sshs_admin_pin_hash') || DEFAULT_PIN_HASH;
+}
+
+function getMasterRecoveryHash() {
+  return localStorage.getItem('sshs_master_recovery_hash') || DEFAULT_RECOVERY_KEY_HASH;
 }
 
 function checkAuth() {
@@ -53,6 +59,47 @@ function checkRateLimitUI() {
     }
     if (submitBtn) submitBtn.disabled = true;
     setTimeout(checkRateLimitUI, 1000);
+  } else {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+function toggleResetForm(showReset) {
+  const authForm = document.getElementById('authForm');
+  const resetForm = document.getElementById('resetForm');
+  const authError = document.getElementById('authError');
+  const resetError = document.getElementById('resetError');
+  if (authError) authError.classList.remove('show');
+  if (resetError) resetError.classList.remove('show');
+
+  if (showReset) {
+    if (authForm) authForm.style.display = 'none';
+    if (resetForm) {
+      resetForm.style.display = 'block';
+      checkResetRateLimitUI();
+    }
+  } else {
+    if (resetForm) resetForm.style.display = 'none';
+    if (authForm) {
+      authForm.style.display = 'block';
+      checkRateLimitUI();
+    }
+  }
+}
+
+function checkResetRateLimitUI() {
+  if (typeof Security === 'undefined') return;
+  const status = Security.isRateLimited('admin_reset', 3, 300);
+  const resetError = document.getElementById('resetError');
+  const submitBtn = document.getElementById('btnSubmitReset');
+
+  if (status.limited) {
+    if (resetError) {
+      resetError.textContent = `🛑 Too many failed reset attempts. Reset locked for ${status.remainingSeconds}s.`;
+      resetError.classList.add('show');
+    }
+    if (submitBtn) submitBtn.disabled = true;
+    setTimeout(checkResetRateLimitUI, 1000);
   } else {
     if (submitBtn) submitBtn.disabled = false;
   }
@@ -95,24 +142,169 @@ async function handleLogin(e) {
         return;
       }
     }
-    errorEl.textContent = `Incorrect PIN. ${attemptsRemaining} attempt(s) remaining.`;
+    errorEl.textContent = `Incorrect password. ${attemptsRemaining} attempt(s) remaining.`;
     errorEl.classList.add('show');
     document.getElementById('pinInput').value = '';
     document.getElementById('pinInput').focus();
   }
 }
 
-async function handleChangePin() {
-  const newPin = document.getElementById('newPinInput').value.trim();
-  if (!newPin || newPin.length < 6) {
-    alert('Security Policy: PIN must be at least 6 characters long.');
+async function handleResetPassword(e) {
+  e.preventDefault();
+  const resetError = document.getElementById('resetError');
+
+  // Rate Limiting Check for Reset
+  if (typeof Security !== 'undefined') {
+    const status = Security.isRateLimited('admin_reset', 3, 300);
+    if (status.limited) {
+      resetError.textContent = `🛑 Too many failed reset attempts. Try again in ${status.remainingSeconds}s.`;
+      resetError.classList.add('show');
+      return;
+    }
+  }
+
+  const recoveryKey = (document.getElementById('resetRecoveryKey').value || '').trim();
+  const newPin = (document.getElementById('resetNewPin').value || '').trim();
+  const confirmPin = (document.getElementById('resetConfirmPin').value || '').trim();
+
+  if (!recoveryKey) {
+    resetError.textContent = 'Please enter the Master Recovery Key.';
+    resetError.classList.add('show');
     return;
   }
 
-  const hashed = (typeof Security !== 'undefined') ? await Security.hashString(newPin) : newPin;
-  localStorage.setItem('sshs_admin_pin_hash', hashed);
+  if (!newPin || newPin.length < 6) {
+    resetError.textContent = 'New password must be at least 6 characters.';
+    resetError.classList.add('show');
+    return;
+  }
+
+  if (newPin !== confirmPin) {
+    resetError.textContent = 'Passwords do not match. Please re-enter.';
+    resetError.classList.add('show');
+    return;
+  }
+
+  const expectedRecoveryHash = getMasterRecoveryHash();
+  const inputRecoveryHash = (typeof Security !== 'undefined') ? await Security.hashString(recoveryKey) : recoveryKey;
+
+  if (inputRecoveryHash !== expectedRecoveryHash) {
+    let attemptsRemaining = 2;
+    if (typeof Security !== 'undefined') {
+      const rec = Security.recordFailedAttempt('admin_reset', 3, 300);
+      attemptsRemaining = Math.max(0, 3 - rec.attempts);
+      if (rec.locked) {
+        checkResetRateLimitUI();
+        return;
+      }
+    }
+    resetError.textContent = `Invalid Master Recovery Key! ${attemptsRemaining} attempt(s) remaining.`;
+    resetError.classList.add('show');
+    document.getElementById('resetRecoveryKey').value = '';
+    document.getElementById('resetRecoveryKey').focus();
+    return;
+  }
+
+  // Key is valid! Hash new password and save
+  const newHash = (typeof Security !== 'undefined') ? await Security.hashString(newPin) : newPin;
+  localStorage.setItem('sshs_admin_pin_hash', newHash);
+
+  // Clear rate limits
+  if (typeof Security !== 'undefined') {
+    Security.resetRateLimit('admin_reset');
+    Security.resetRateLimit('admin_login');
+  }
+
+  document.getElementById('resetRecoveryKey').value = '';
+  document.getElementById('resetNewPin').value = '';
+  document.getElementById('resetConfirmPin').value = '';
+
+  toggleResetForm(false);
+  showToast('✅ Admin Password successfully reset! Please log in.');
+  const authError = document.getElementById('authError');
+  if (authError) {
+    authError.textContent = '✅ Password successfully updated! Enter your new password below.';
+    authError.style.color = '#059669';
+    authError.classList.add('show');
+    setTimeout(() => {
+      authError.classList.remove('show');
+      authError.style.color = '#dc2626';
+    }, 5000);
+  }
+}
+
+async function handleChangePassword() {
+  const currentPin = (document.getElementById('currentPinInput').value || '').trim();
+  const newPin = (document.getElementById('newPinInput').value || '').trim();
+  const confirmPin = (document.getElementById('confirmPinInput').value || '').trim();
+
+  if (!currentPin) {
+    showToast('⚠️ Please enter your current password.');
+    return;
+  }
+
+  if (!newPin || newPin.length < 6) {
+    showToast('⚠️ New password must be at least 6 characters long.');
+    return;
+  }
+
+  if (newPin !== confirmPin) {
+    showToast('⚠️ New passwords do not match. Please verify.');
+    return;
+  }
+
+  const storedHash = getAdminPinHash();
+  const currentHash = (typeof Security !== 'undefined') ? await Security.hashString(currentPin) : currentPin;
+
+  if (currentHash !== storedHash) {
+    showToast('❌ Incorrect current password. Cannot change password.');
+    return;
+  }
+
+  if (currentPin === newPin) {
+    showToast('⚠️ New password must be different from current password.');
+    return;
+  }
+
+  const newHash = (typeof Security !== 'undefined') ? await Security.hashString(newPin) : newPin;
+  localStorage.setItem('sshs_admin_pin_hash', newHash);
+
+  document.getElementById('currentPinInput').value = '';
   document.getElementById('newPinInput').value = '';
-  showToast('🔐 Admin PIN updated and cryptographically hashed (SHA-256)!');
+  document.getElementById('confirmPinInput').value = '';
+
+  showToast('🔐 Admin Password successfully changed and cryptographically hashed (SHA-256)!');
+}
+
+async function handleUpdateRecoveryKey() {
+  const newKey = (document.getElementById('newRecoveryKeyInput').value || '').trim();
+  const adminPin = (document.getElementById('recoveryAdminPinInput').value || '').trim();
+
+  if (!newKey || newKey.length < 8) {
+    showToast('⚠️ Master Recovery Key must be at least 8 characters long.');
+    return;
+  }
+
+  if (!adminPin) {
+    showToast('⚠️ Enter current admin password to authorize this security change.');
+    return;
+  }
+
+  const storedPinHash = getAdminPinHash();
+  const inputPinHash = (typeof Security !== 'undefined') ? await Security.hashString(adminPin) : adminPin;
+
+  if (inputPinHash !== storedPinHash) {
+    showToast('❌ Incorrect admin password. Authorization failed.');
+    return;
+  }
+
+  const newRecoveryHash = (typeof Security !== 'undefined') ? await Security.hashString(newKey) : newKey;
+  localStorage.setItem('sshs_master_recovery_hash', newRecoveryHash);
+
+  document.getElementById('newRecoveryKeyInput').value = '';
+  document.getElementById('recoveryAdminPinInput').value = '';
+
+  showToast('🔑 Master Recovery Key updated successfully!');
 }
 
 function handleLogout() {
@@ -1329,4 +1521,9 @@ if (typeof window !== 'undefined') {
   window.handleImportDirectDriveLinks = handleImportDirectDriveLinks;
   window.toggleSetupGuide = toggleSetupGuide;
   window.copyAppsScriptCode = copyAppsScriptCode;
+  window.toggleResetForm = toggleResetForm;
+  window.handleResetPassword = handleResetPassword;
+  window.handleChangePassword = handleChangePassword;
+  window.handleChangePin = handleChangePassword; // Backward-compatible alias
+  window.handleUpdateRecoveryKey = handleUpdateRecoveryKey;
 }

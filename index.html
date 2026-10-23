@@ -70,7 +70,85 @@
         </button>
       </div>
 
-      <!-- Primary Folder Headers Section (Mirroring Google Drive Structure) -->
+      <!-- 1. Class Selection Section (Diamond 4-Quadrant Selector) -->
+      <section class="diamond-section">
+        <div class="selector-header-row">
+          <div class="selector-instruction">
+            <span>🎯</span> Select Your Class / कक्षा चुनें
+          </div>
+          <button class="install-pill-btn" onclick="triggerPwaInstall()" title="Install App on Phone">
+            📲 Install App
+          </button>
+        </div>
+
+        <div class="diamond-container">
+          <svg class="diamond-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <!-- Shadows and Gradients for Quadrants -->
+              <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.15"/>
+              </filter>
+            </defs>
+
+            <!-- Outer Diamond Background Frame -->
+            <polygon points="150,12 288,150 150,288 12,150" fill="#ffffff" stroke="#e2e8f0" stroke-width="4" filter="url(#shadow)"/>
+
+            <!-- Quadrant 1: 9th (Top-Left) -->
+            <g class="quadrant-group" onclick="selectClass('9th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 16,150 L 150,16 Z" fill="#059669">
+                <title>Class 9th Notes</title>
+              </path>
+              <text x="105" y="98" class="quadrant-label">9th</text>
+              <text x="105" y="116" class="quadrant-sublabel">CLASS</text>
+            </g>
+
+            <!-- Quadrant 2: 10th (Top-Right) -->
+            <g class="quadrant-group" onclick="selectClass('10th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 150,16 L 284,150 Z" fill="#2563eb">
+                <title>Class 10th Notes</title>
+              </path>
+              <text x="195" y="98" class="quadrant-label">10th</text>
+              <text x="195" y="116" class="quadrant-sublabel">CLASS</text>
+            </g>
+
+            <!-- Quadrant 3: 11th (Bottom-Left) -->
+            <g class="quadrant-group" onclick="selectClass('11th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 16,150 L 150,284 Z" fill="#d97706">
+                <title>Class 11th Notes</title>
+              </path>
+              <text x="105" y="194" class="quadrant-label">11th</text>
+              <text x="105" y="212" class="quadrant-sublabel">+2 ARTS/SCI</text>
+            </g>
+
+            <!-- Quadrant 4: 12th (Bottom-Right) -->
+            <g class="quadrant-group" onclick="selectClass('12th')" style="cursor: pointer;">
+              <path class="quadrant-path" d="M 150,150 L 150,284 L 284,150 Z" fill="#7c3aed">
+                <title>Class 12th Notes</title>
+              </path>
+              <text x="195" y="194" class="quadrant-label">12th</text>
+              <text x="195" y="212" class="quadrant-sublabel">+2 BOARD</text>
+            </g>
+
+            <!-- Dividing Cross Lines -->
+            <line x1="150" y1="12" x2="150" y2="288" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+            <line x1="12" y1="150" x2="288" y2="150" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+
+            <!-- Center Gold Badge -->
+            <circle cx="150" cy="150" r="18" fill="#f59e0b" stroke="#ffffff" stroke-width="3"/>
+            <text x="150" y="154" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">SSHS</text>
+          </svg>
+        </div>
+
+        <!-- Quick Finger Tap Buttons for Mobile Accessibility -->
+        <div class="class-pill-grid">
+          <button class="class-pill-btn" onclick="selectClass('9th')">Class 9th</button>
+          <button class="class-pill-btn" onclick="selectClass('10th')">Class 10th</button>
+          <button class="class-pill-btn" onclick="selectClass('11th')">Class 11th</button>
+          <button class="class-pill-btn" onclick="selectClass('12th')">Class 12th</button>
+        </div>
+      </section>
+
+      <!-- 2. Vocational Folder Headers Section (Mirroring Google Drive Structure) -->
       <section class="folder-categories-section">
         <div class="folder-section-header">
           <div class="folder-section-title">
@@ -79,7 +157,7 @@
           <span class="folder-section-badge">GDRIVE SYNCED</span>
         </div>
         <p class="folder-section-desc">
-          Browse notes categorized directly by Vocational Trade, Textbooks & Topic folders
+          Or browse notes categorized directly by Vocational Trade, Textbooks & Topic folders
         </p>
 
         <div id="folderCategoriesContainer" class="folder-grid">
@@ -199,84 +277,6 @@
         </div>
       </section>
 
-      <!-- Secondary Class Selector (Diamond / Kite) -->
-      <section class="diamond-section">
-        <div class="selector-header-row">
-          <div class="selector-instruction">
-            <span>🎯</span> Or Browse by Class / अथवा कक्षा अनुसार देखें
-          </div>
-          <button class="install-pill-btn" onclick="triggerPwaInstall()" title="Install App on Phone">
-            📲 Install App
-          </button>
-        </div>
-
-        <div class="diamond-container">
-          <svg class="diamond-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <!-- Shadows and Gradients for Quadrants -->
-              <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.15"/>
-              </filter>
-            </defs>
-
-            <!-- Outer Diamond Background Frame -->
-            <polygon points="150,12 288,150 150,288 12,150" fill="#ffffff" stroke="#e2e8f0" stroke-width="4" filter="url(#shadow)"/>
-
-            <!-- Quadrant 1: 9th (Top-Left) -->
-            <g class="quadrant-group" onclick="selectClass('9th')" style="cursor: pointer;">
-              <path class="quadrant-path" d="M 150,150 L 16,150 L 150,16 Z" fill="#059669">
-                <title>Class 9th Notes</title>
-              </path>
-              <text x="105" y="98" class="quadrant-label">9th</text>
-              <text x="105" y="116" class="quadrant-sublabel">CLASS</text>
-            </g>
-
-            <!-- Quadrant 2: 10th (Top-Right) -->
-            <g class="quadrant-group" onclick="selectClass('10th')" style="cursor: pointer;">
-              <path class="quadrant-path" d="M 150,150 L 150,16 L 284,150 Z" fill="#2563eb">
-                <title>Class 10th Notes</title>
-              </path>
-              <text x="195" y="98" class="quadrant-label">10th</text>
-              <text x="195" y="116" class="quadrant-sublabel">CLASS</text>
-            </g>
-
-            <!-- Quadrant 3: 11th (Bottom-Left) -->
-            <g class="quadrant-group" onclick="selectClass('11th')" style="cursor: pointer;">
-              <path class="quadrant-path" d="M 150,150 L 16,150 L 150,284 Z" fill="#d97706">
-                <title>Class 11th Notes</title>
-              </path>
-              <text x="105" y="194" class="quadrant-label">11th</text>
-              <text x="105" y="212" class="quadrant-sublabel">+2 ARTS/SCI</text>
-            </g>
-
-            <!-- Quadrant 4: 12th (Bottom-Right) -->
-            <g class="quadrant-group" onclick="selectClass('12th')" style="cursor: pointer;">
-              <path class="quadrant-path" d="M 150,150 L 150,284 L 284,150 Z" fill="#7c3aed">
-                <title>Class 12th Notes</title>
-              </path>
-              <text x="195" y="194" class="quadrant-label">12th</text>
-              <text x="195" y="212" class="quadrant-sublabel">+2 BOARD</text>
-            </g>
-
-            <!-- Dividing Cross Lines -->
-            <line x1="150" y1="12" x2="150" y2="288" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-            <line x1="12" y1="150" x2="288" y2="150" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-
-            <!-- Center Gold Badge -->
-            <circle cx="150" cy="150" r="18" fill="#f59e0b" stroke="#ffffff" stroke-width="3"/>
-            <text x="150" y="154" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">SSHS</text>
-          </svg>
-        </div>
-
-        <!-- Quick Finger Tap Buttons for Mobile Accessibility -->
-        <div class="class-pill-grid">
-          <button class="class-pill-btn" onclick="selectClass('9th')">Class 9th</button>
-          <button class="class-pill-btn" onclick="selectClass('10th')">Class 10th</button>
-          <button class="class-pill-btn" onclick="selectClass('11th')">Class 11th</button>
-          <button class="class-pill-btn" onclick="selectClass('12th')">Class 12th</button>
-        </div>
-      </section>
-
       <!-- Poster / Notice Board Section (as in reference sketch) -->
       <section class="poster-section">
         <div class="poster-header">
@@ -341,10 +341,26 @@
     <div class="modal-container">
       <div class="modal-header">
         <div id="modalTitle" class="modal-title">Study Note Viewer</div>
-        <button class="modal-close" onclick="closePdfViewer()" title="Close">✕</button>
+        <div class="modal-header-actions" style="display: flex; align-items: center; gap: 8px;">
+          <a id="modalExternalLink" class="btn-modal-external" href="#" target="_blank" rel="noopener noreferrer" title="Open Fullscreen in New Tab" style="display: none;">
+            ↗️ Open Fullscreen
+          </a>
+          <button class="modal-close" onclick="closePdfViewer()" title="Close">✕</button>
+        </div>
       </div>
       <div class="modal-body">
-        <iframe id="modalFrame" class="pdf-frame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-downloads allow-forms" loading="lazy"></iframe>
+        <!-- Google Drive Helper Banner (Displays if viewing Google Drive documents) -->
+        <div id="modalDriveHelper" class="modal-drive-helper" style="display: none;">
+          <div class="helper-info">
+            <span class="helper-icon">💡</span>
+            <span>If Google Drive displays a cookie notice or cannot load the preview, open it directly in Drive:</span>
+          </div>
+          <a id="modalDirectOpenBtn" class="btn-helper-open" href="#" target="_blank" rel="noopener noreferrer">
+            🚀 Open Full Screen in Google Drive
+          </a>
+        </div>
+        <!-- Note: sandbox removed so browser PDF engine & Google Drive preview initialize smoothly without SecurityError/cookie block -->
+        <iframe id="modalFrame" class="pdf-frame" src="about:blank" loading="lazy"></iframe>
       </div>
       <div class="modal-footer">
         <button class="btn-action btn-view" onclick="closePdfViewer()">Close</button>
