@@ -655,13 +655,14 @@ function switchTab(tabId) {
   const activeContent = document.getElementById(tabId);
   if (activeContent) activeContent.classList.add('active');
 
-  const tabList = ['bulkUploadTab', 'uploadTab', 'manageTab', 'noticesTab', 'exportTab', 'profileTab'];
+  const tabList = ['bulkUploadTab', 'uploadTab', 'manageTab', 'noticesTab', 'reportsTab', 'exportTab', 'profileTab'];
   const btnIndex = tabList.indexOf(tabId);
   const buttons = document.querySelectorAll('.admin-tab-btn');
   if (buttons[btnIndex]) buttons[btnIndex].classList.add('active');
 
   if (tabId === 'manageTab') renderManageTable();
   if (tabId === 'noticesTab') renderManageNotices();
+  if (tabId === 'reportsTab') renderReportedIssues();
   if (tabId === 'profileTab') loadAdminProfileData();
 }
 
@@ -692,6 +693,19 @@ async function loadDashboardData() {
   if (elSec) elSec.textContent = secNotes;
   if (elHigh) elHigh.textContent = highNotes;
   if (elNotices) elNotices.textContent = posters.length;
+
+  // Update Pending Reports Badge
+  const allIssues = (typeof getReportedIssues === 'function') ? getReportedIssues() : [];
+  const pendingCount = allIssues.filter(i => i.status === 'pending').length;
+  const reportsBadge = document.getElementById('reportsBadge');
+  if (reportsBadge) {
+    if (pendingCount > 0) {
+      reportsBadge.textContent = pendingCount;
+      reportsBadge.style.display = 'inline-block';
+    } else {
+      reportsBadge.style.display = 'none';
+    }
+  }
 }
 
 // ==============================================
@@ -1586,6 +1600,149 @@ function handleResetDefaults() {
   renderManageTable();
 }
 
+// ==============================================
+// STUDENT ISSUE REPORTS MANAGEMENT
+// ==============================================
+let currentReportsFilter = 'all';
+
+function filterReports(filter, btn) {
+  currentReportsFilter = filter;
+  document.querySelectorAll('.filter-tab-pill').forEach(el => el.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderReportedIssues(filter);
+}
+
+function renderReportedIssues(filter = currentReportsFilter) {
+  const container = document.getElementById('reportsListContainer');
+  if (!container) return;
+
+  const allIssues = (typeof getReportedIssues === 'function') ? getReportedIssues() : [];
+  const pendingCount = allIssues.filter(i => i.status === 'pending').length;
+  const resolvedCount = allIssues.filter(i => i.status === 'resolved').length;
+
+  const countAll = document.getElementById('countAllReports');
+  const countPending = document.getElementById('countPendingReports');
+  const countResolved = document.getElementById('countResolvedReports');
+  const badge = document.getElementById('reportsBadge');
+
+  if (countAll) countAll.textContent = allIssues.length;
+  if (countPending) countPending.textContent = pendingCount;
+  if (countResolved) countResolved.textContent = resolvedCount;
+  if (badge) {
+    if (pendingCount > 0) {
+      badge.textContent = pendingCount;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  let list = allIssues;
+  if (filter === 'pending') {
+    list = allIssues.filter(i => i.status === 'pending');
+  } else if (filter === 'resolved') {
+    list = allIssues.filter(i => i.status === 'resolved');
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">🎉</div>
+        <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-main);">No Issue Reports Found</div>
+        <p style="font-size: 0.9rem; max-width: 420px; margin: 8px auto 0;">All study notes and notices are working properly. Any report submitted from the notes viewer will appear here for staff review.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+  const typeLabels = {
+    cannot_open: '📄 Cannot View / Blank Screen',
+    download_failed: '📥 Download Failed / Broken File',
+    wrong_class_subject: '📚 Wrong Class/Subject',
+    missing_pages: '📑 Missing Pages / Cut-Off',
+    slow_loading: '⏳ Slow Loading',
+    other: '💡 Other Issue'
+  };
+
+  container.innerHTML = list.map(item => {
+    const isPending = (item.status === 'pending');
+    const statusPill = isPending
+      ? `<span class="report-badge-status badge-pending">⏳ Pending Review</span>`
+      : `<span class="report-badge-status badge-resolved">✅ Resolved</span>`;
+    const typeLabel = typeLabels[item.issueType] || esc(item.issueType || 'Issue');
+
+    return `
+      <div class="report-admin-card ${isPending ? 'is-pending' : 'is-resolved'}">
+        <div class="report-admin-top">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            ${statusPill}
+            <span class="report-badge-type">${typeLabel}</span>
+            <span class="report-date-text">📅 ${esc(item.formattedDate || '')}</span>
+          </div>
+          <div class="report-actions-group">
+            ${item.fileUrl ? `
+              <a href="${esc(item.fileUrl)}" target="_blank" class="btn-sm-action btn-test-link" title="Test Document in New Tab">
+                🔗 Test File
+              </a>
+            ` : ''}
+            <button type="button" class="btn-sm-action ${isPending ? 'btn-resolve' : 'btn-reopen'}" onclick="handleToggleReportStatus('${esc(item.id)}')">
+              ${isPending ? '✅ Mark Resolved' : '↩️ Mark Pending'}
+            </button>
+            <button type="button" class="btn-sm-action btn-delete-report" onclick="handleDeleteReport('${esc(item.id)}')" title="Delete Report">
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        <div class="report-note-info">
+          <div class="report-note-title">📖 <strong>${esc(item.noteTitle)}</strong></div>
+          ${item.fileUrl ? `<div class="report-note-url text-mono">${esc(item.fileUrl)}</div>` : ''}
+        </div>
+
+        <div class="report-user-details">
+          <span>👤 Reported by: <strong>${esc(item.studentName || 'Student')}</strong></span>
+          ${item.studentClass ? `<span>• Class: <strong>${esc(item.studentClass)}</strong></span>` : ''}
+        </div>
+
+        <div class="report-desc-box">
+          💬 ${esc(item.details || 'No additional details provided.')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function handleToggleReportStatus(id) {
+  const issues = (typeof getReportedIssues === 'function') ? getReportedIssues() : [];
+  const target = issues.find(i => i.id === id);
+  if (!target) return;
+  const newStatus = (target.status === 'pending') ? 'resolved' : 'pending';
+  if (typeof updateReportedIssueStatus === 'function') {
+    updateReportedIssueStatus(id, newStatus);
+  }
+  renderReportedIssues();
+  showToast(newStatus === 'resolved' ? '✅ Marked issue as resolved!' : '⏳ Reopened issue as pending.');
+}
+
+function handleDeleteReport(id) {
+  if (!confirm('Are you sure you want to delete this issue report?')) return;
+  if (typeof deleteReportedIssue === 'function') {
+    deleteReportedIssue(id);
+  }
+  renderReportedIssues();
+  showToast('🗑️ Issue report deleted.');
+}
+
+function handleClearResolvedReports() {
+  if (!confirm('Clear all resolved reports? Pending reports will be preserved.')) return;
+  if (typeof clearResolvedReportedIssues === 'function') {
+    clearResolvedReportedIssues();
+  }
+  renderReportedIssues();
+  showToast('🗑️ Cleared resolved issue reports.');
+}
+
 // Backward-compatible safe stubs (All notes are 100% self-hosted with website code)
 function loadGDriveTab() {}
 function handleSaveDriveConfig(e) { if (e && e.preventDefault) e.preventDefault(); }
@@ -1654,4 +1811,9 @@ if (typeof window !== 'undefined') {
   window.handleGenerateEmergencyCode = handleGenerateEmergencyCode;
   window.checkPasswordStrengthUI = checkPasswordStrengthUI;
   window.loadAdminProfileData = loadAdminProfileData;
+  window.filterReports = filterReports;
+  window.renderReportedIssues = renderReportedIssues;
+  window.handleToggleReportStatus = handleToggleReportStatus;
+  window.handleDeleteReport = handleDeleteReport;
+  window.handleClearResolvedReports = handleClearResolvedReports;
 }

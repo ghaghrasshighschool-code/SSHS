@@ -204,6 +204,30 @@
         </div>
       </section>
 
+      <!-- 1.5 Self-Hosted Library Verification & Auto-Repair Bar -->
+      <section class="library-sync-bar-section" aria-label="Library Health and Repair">
+        <div class="library-sync-bar-card">
+          <div class="library-sync-bar-left">
+            <div class="library-sync-bar-icon">⚡</div>
+            <div class="library-sync-bar-content">
+              <div class="library-sync-bar-title">
+                <span>Self-Hosted Library File Verification</span>
+                <span class="library-sync-pill">145 Files Hosted</span>
+              </div>
+              <p class="library-sync-bar-subtitle">
+                Checks <code>notes/</code> &amp; <code>notices/</code> folder paths, auto-fixes file path association errors, and indexes any new PDF study notes.
+              </p>
+            </div>
+          </div>
+          <div class="library-sync-bar-right">
+            <button class="btn-sync-action" onclick="runLibraryRepair(true)" title="Check notes and notices folders and fix path associations">
+              <span class="btn-sync-icon">🔍</span>
+              <span>Check &amp; Repair Library Files</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- 2. Vocational Folder Headers Section (Self-Hosted Study Material Library) -->
       <section class="folder-categories-section">
         <div class="folder-section-header">
@@ -458,6 +482,9 @@
       <div class="modal-header">
         <div id="modalTitle" class="modal-title">Study Note Viewer</div>
         <div class="modal-header-actions" style="display: flex; align-items: center; gap: 8px;">
+          <button class="btn-modal-action btn-modal-report" onclick="openReportModal()" title="Report an issue with viewing or downloading this note">
+            ⚠️ Report Issue
+          </button>
           <a id="modalExternalLink" class="btn-modal-external" href="#" target="_blank" rel="noopener noreferrer" title="Open Fullscreen in New Tab" style="display: none;">
             ↗️ Open Fullscreen
           </a>
@@ -468,10 +495,161 @@
         <iframe id="modalFrame" class="pdf-frame" src="about:blank" loading="lazy"></iframe>
       </div>
       <div class="modal-footer">
+        <button class="btn-action btn-report-issue" onclick="openReportModal()" title="Report an issue with this note">
+          ⚠️ Report Issue
+        </button>
         <button class="btn-action btn-view" onclick="closePdfViewer()">Close</button>
         <a id="modalDownloadBtn" class="btn-action btn-download" href="#" download>
           📥 Download PDF
         </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================================
+       STUDENT ISSUE REPORTING MODAL
+       ============================================== -->
+  <div id="reportModal" class="modal-overlay">
+    <div class="modal-container report-modal-container">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🚩</span> Report Note Issue / समस्या रिपोर्ट करें
+        </div>
+        <button class="modal-close" onclick="closeReportModal()" title="Close">✕</button>
+      </div>
+      <form id="reportForm" onsubmit="handleReportSubmit(event)">
+        <div class="modal-body report-modal-body">
+          <div class="report-intro-banner">
+            <span>ℹ️</span>
+            <div>Having trouble viewing, downloading, or reading this document? Submit your report below and the IT Department will inspect and fix the file association.</div>
+          </div>
+
+          <!-- Note Details (Auto-filled) -->
+          <div class="report-field-group">
+            <label class="report-field-label">Document / Note Title:</label>
+            <input type="text" id="reportNoteTitle" class="report-field-input text-bold" readonly>
+          </div>
+
+          <div class="report-field-group">
+            <label class="report-field-label">File Path / URL:</label>
+            <input type="text" id="reportNoteUrl" class="report-field-input text-mono" readonly>
+          </div>
+
+          <!-- Problem Type -->
+          <div class="report-field-group">
+            <label class="report-field-label">Type of Problem / समस्या का प्रकार <span class="required">*</span>:</label>
+            <select id="reportIssueType" class="report-field-select" required>
+              <option value="">-- Select Problem Type / समस्या चुनें --</option>
+              <option value="cannot_open">📄 Cannot View / Blank Screen or Error opening PDF</option>
+              <option value="download_failed">📥 Download Failed / Broken or Corrupted File</option>
+              <option value="wrong_class_subject">📚 Wrong Class, Subject, or Syllabus Unit</option>
+              <option value="missing_pages">📑 Missing Pages, Blurry Text, or Cut-Off Content</option>
+              <option value="slow_loading">⏳ Extremely Slow to Load or Freeze</option>
+              <option value="other">💡 Other Issue or Suggestion</option>
+            </select>
+          </div>
+
+          <!-- Student Info -->
+          <div class="report-fields-row">
+            <div class="report-field-group">
+              <label class="report-field-label">Your Name / Roll No (Optional):</label>
+              <input type="text" id="reportStudentName" class="report-field-input" placeholder="e.g. Ramesh Kumar (Roll 14)">
+            </div>
+            <div class="report-field-group">
+              <label class="report-field-label">Class (Optional):</label>
+              <select id="reportStudentClass" class="report-field-select">
+                <option value="">Auto-detected</option>
+                <option value="9th">Class 9th (DDEO)</option>
+                <option value="10th">Class 10th (DDEO)</option>
+                <option value="11th">Class 11th (JSD)</option>
+                <option value="12th">Class 12th (JSD)</option>
+                <option value="general">General / Other</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Problem Description -->
+          <div class="report-field-group">
+            <label class="report-field-label">Problem Details / विस्तृत विवरण <span class="required">*</span>:</label>
+            <textarea id="reportDetails" class="report-field-textarea" rows="3" required placeholder="Describe what happens when you click View or Download (e.g., 'Blank white screen in Chrome', 'Error 404', 'Page 4 is illegible')..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer report-modal-footer">
+          <button type="button" class="btn-action btn-cancel" onclick="closeReportModal()">Cancel</button>
+          <button type="button" class="btn-action btn-email-fallback" onclick="sendReportViaEmail()" title="Send direct email to Vocational IT Coordinator">
+            ✉️ Email Support
+          </button>
+          <button type="submit" class="btn-action btn-submit-report">
+            🚀 Submit Issue Report
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==============================================
+       LIBRARY AUDIT & AUTO-REPAIR ENGINE MODAL
+       ============================================== -->
+  <div id="librarySyncModal" class="modal-overlay">
+    <div class="modal-container sync-modal-container">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>⚡</span> Self-Hosted Library Verification &amp; Repair Engine
+        </div>
+        <button class="modal-close" onclick="closeLibrarySyncModal()" title="Close">✕</button>
+      </div>
+      <div class="modal-body sync-modal-body">
+        <!-- Progress State -->
+        <div id="syncProgressState" class="sync-progress-state">
+          <div class="sync-spinner"></div>
+          <div class="sync-progress-text">Auditing physical files in <code>notes/</code> &amp; <code>notices/</code>...</div>
+        </div>
+
+        <!-- Results State -->
+        <div id="syncResultsState" class="sync-results-state" style="display: none;">
+          <!-- Summary Metric Cards -->
+          <div class="sync-stats-grid">
+            <div class="sync-stat-card">
+              <div class="sync-stat-num" id="syncTotalFiles">145</div>
+              <div class="sync-stat-label">Physical Files</div>
+              <div class="sync-stat-sub">100% Repository Hosted</div>
+            </div>
+            <div class="sync-stat-card sync-stat-success">
+              <div class="sync-stat-num" id="syncHealthyFiles">145</div>
+              <div class="sync-stat-label">Paths Healthy</div>
+              <div class="sync-stat-sub">Reachable &amp; Matched</div>
+            </div>
+            <div class="sync-stat-card sync-stat-warning">
+              <div class="sync-stat-num" id="syncRepairedFiles">0</div>
+              <div class="sync-stat-label">Path Errors Fixed</div>
+              <div class="sync-stat-sub">Associations Repaired</div>
+            </div>
+            <div class="sync-stat-card sync-stat-info">
+              <div class="sync-stat-num" id="syncAddedFiles">0</div>
+              <div class="sync-stat-label">New Files Added</div>
+              <div class="sync-stat-sub">Auto-Indexed to Catalog</div>
+            </div>
+          </div>
+
+          <!-- Dynamic Status Banner -->
+          <div id="syncStatusBanner" class="sync-status-banner"></div>
+
+          <!-- Audit Log Records -->
+          <div class="sync-logs-wrapper">
+            <div class="sync-logs-header">
+              <span>📋 Verification &amp; Repair Audit Details:</span>
+              <span id="syncTimestamp" class="sync-timestamp"></span>
+            </div>
+            <div id="syncLogsList" class="sync-logs-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer sync-modal-footer">
+        <button class="btn-action btn-cancel" onclick="closeLibrarySyncModal()">Close</button>
+        <button id="btnSyncApply" class="btn-action btn-download" onclick="applyLibrarySyncAndReload()">
+          🔄 Refresh &amp; Apply Changes
+        </button>
       </div>
     </div>
   </div>
@@ -512,6 +690,7 @@
 
   <!-- Scripts -->
   <script src="./js/security.js"></script>
+  <script src="./js/manifest.js"></script>
   <script src="./js/data.js"></script>
   <script src="./js/storage.js"></script>
   <script src="./js/app.js"></script>

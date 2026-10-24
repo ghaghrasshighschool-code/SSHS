@@ -479,6 +479,14 @@ function openPdfViewer(url, title) {
   const safeTitle = (typeof Security !== 'undefined') ? Security.escapeHtml(title) : (title || 'Study Note');
   const safeFilename = sanitizeFilename(title || 'Study_Notes') + '.pdf';
 
+  // Store active viewing note details for issue reporting
+  window.currentViewingNote = {
+    url: safeFrameUrl,
+    title: safeTitle,
+    rawTitle: title || 'Study Note',
+    activeClass: activeClass || '9th'
+  };
+
   if (modalTitle) modalTitle.textContent = safeTitle;
   if (modalFrame) modalFrame.src = safeFrameUrl;
 
@@ -505,6 +513,96 @@ function closePdfViewer() {
   const modalExternalLink = document.getElementById('modalExternalLink');
   if (modalExternalLink) modalExternalLink.style.display = 'none';
   document.body.style.overflow = 'auto';
+}
+
+// Student Issue Reporting Handlers
+function openReportModal() {
+  const modal = document.getElementById('reportModal');
+  if (!modal) return;
+
+  const current = window.currentViewingNote || {};
+  const elTitle = document.getElementById('reportNoteTitle');
+  const elUrl = document.getElementById('reportNoteUrl');
+  const elClass = document.getElementById('reportStudentClass');
+  const elType = document.getElementById('reportIssueType');
+  const elDetails = document.getElementById('reportDetails');
+  const elName = document.getElementById('reportStudentName');
+
+  if (elTitle) elTitle.value = current.rawTitle || current.title || 'Study Note';
+  if (elUrl) elUrl.value = current.url || '';
+  if (elClass && current.activeClass) elClass.value = current.activeClass;
+  if (elType) elType.value = '';
+  if (elDetails) elDetails.value = '';
+  if (elName) elName.value = '';
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReportModal() {
+  const modal = document.getElementById('reportModal');
+  if (modal) modal.classList.remove('active');
+  const pdfModal = document.getElementById('pdfModal');
+  if (!pdfModal || !pdfModal.classList.contains('active')) {
+    document.body.style.overflow = 'auto';
+  }
+}
+
+function handleReportSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const title = (document.getElementById('reportNoteTitle')?.value || '').trim();
+  const url = (document.getElementById('reportNoteUrl')?.value || '').trim();
+  const issueType = (document.getElementById('reportIssueType')?.value || '').trim();
+  const details = (document.getElementById('reportDetails')?.value || '').trim();
+  const studentName = (document.getElementById('reportStudentName')?.value || '').trim();
+  const studentClass = (document.getElementById('reportStudentClass')?.value || '').trim();
+
+  if (!issueType) {
+    showToast('⚠️ Please select the type of problem.');
+    return;
+  }
+  if (!details) {
+    showToast('⚠️ Please describe what problem you encountered.');
+    return;
+  }
+
+  if (typeof saveReportedIssue === 'function') {
+    saveReportedIssue({
+      noteTitle: title,
+      fileUrl: url,
+      issueType: issueType,
+      studentName: studentName || 'Student',
+      studentClass: studentClass,
+      details: details
+    });
+  }
+
+  closeReportModal();
+  showToast('✅ Report submitted! Thank you, school IT will inspect and resolve this.');
+}
+
+function sendReportViaEmail() {
+  const title = (document.getElementById('reportNoteTitle')?.value || '').trim();
+  const url = (document.getElementById('reportNoteUrl')?.value || '').trim();
+  const issueType = (document.getElementById('reportIssueType')?.value || '').trim();
+  const details = (document.getElementById('reportDetails')?.value || '').trim();
+  const studentName = (document.getElementById('reportStudentName')?.value || '').trim();
+  const studentClass = (document.getElementById('reportStudentClass')?.value || '').trim();
+
+  const subject = encodeURIComponent(`[SSHS Portal Issue Report] ${title || 'Study Note'}`);
+  const body = encodeURIComponent(
+    `SS+2 High School Ghaghra - Portal Issue Report\n` +
+    `--------------------------------------------------\n` +
+    `Document: ${title}\n` +
+    `File URL: ${url}\n` +
+    `Issue Category: ${issueType}\n` +
+    `Student / Sender: ${studentName || 'Anonymous'} (Class: ${studentClass || 'Not specified'})\n\n` +
+    `Description of Problem:\n${details || 'No description provided'}\n\n` +
+    `Sent from SSHS Study Portal notes viewer.`
+  );
+
+  window.open(`mailto:support@sshsghaghra.edu.in?subject=${subject}&body=${body}`, '_blank');
 }
 
 // Download feedback
@@ -596,4 +694,8 @@ if (typeof window !== 'undefined') {
   window.reloadAllData = reloadAllData;
   window.handleViewNote = handleViewNote;
   window.handleDownloadClick = handleDownloadClick;
+  window.openReportModal = openReportModal;
+  window.closeReportModal = closeReportModal;
+  window.handleReportSubmit = handleReportSubmit;
+  window.sendReportViaEmail = sendReportViaEmail;
 }

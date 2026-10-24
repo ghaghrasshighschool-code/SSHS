@@ -861,6 +861,421 @@
   border-color: #1e3a8a;
 }
 
+/* ==========================================================================
+   ADMIN HEADER CHECK & REPAIR BUTTON & REPORT BADGE
+   ========================================================================== */
+.btn-header-sync {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+  transition: all 0.2s;
+}
+
+.btn-header-sync:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.4);
+}
+
+.tab-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  margin-left: 6px;
+  line-height: 1;
+}
+
+.filter-tab-pill {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-tab-pill:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.filter-tab-pill.active {
+  background: #1e3a8a;
+  color: #ffffff;
+  border-color: #1e3a8a;
+}
+
+/* ==========================================================================
+   STUDENT ISSUE REPORTS CARDS & LIST
+   ========================================================================== */
+.report-admin-card {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+.report-admin-card.is-pending {
+  border-left: 4px solid #ef4444;
+}
+
+.report-admin-card.is-resolved {
+  border-left: 4px solid #10b981;
+  background: #f8fafc;
+  opacity: 0.92;
+}
+
+.report-admin-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.report-badge-status {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.badge-pending {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.badge-resolved {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.report-badge-type {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #bae6fd;
+}
+
+.report-date-text {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.report-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-sm-action {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-test-link {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.btn-test-link:hover {
+  background: #dbeafe;
+}
+
+.btn-resolve {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.btn-resolve:hover {
+  background: #059669;
+}
+
+.btn-reopen {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-reopen:hover {
+  background: #e2e8f0;
+}
+
+.btn-delete-report {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-delete-report:hover {
+  background: #fca5a5;
+  color: #991b1b;
+}
+
+.report-note-info {
+  margin-bottom: 8px;
+}
+
+.report-note-title {
+  font-size: 0.92rem;
+  color: #1e293b;
+}
+
+.report-note-url {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.report-user-details {
+  font-size: 0.78rem;
+  color: #475569;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.report-desc-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+/* Modal styles for #librarySyncModal in admin */
+.sync-modal-container {
+  max-width: 680px;
+}
+
+.sync-modal-body {
+  padding: 20px 24px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.sync-progress-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 16px;
+}
+
+.sync-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.sync-progress-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.sync-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 600px) {
+  .sync-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sync-stat-card {
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.sync-stat-num {
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #1e293b;
+  line-height: 1.1;
+}
+
+.sync-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.sync-stat-sub {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.sync-stat-success .sync-stat-num { color: #16a34a; }
+.sync-stat-success { background: #f0fdf4; border-color: #bbf7d0; }
+
+.sync-stat-warning .sync-stat-num { color: #d97706; }
+.sync-stat-warning { background: #fffbeb; border-color: #fde68a; }
+
+.sync-stat-info .sync-stat-num { color: #0284c7; }
+.sync-stat-info { background: #f0f9ff; border-color: #bae6fd; }
+
+.sync-status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.sync-banner-success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.sync-banner-repaired {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1e40af;
+}
+
+.sync-banner-icon {
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.sync-banner-text strong {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 2px;
+}
+
+.sync-logs-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.sync-logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.sync-timestamp {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: normal;
+}
+
+.sync-logs-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-family: monospace;
+  background: #fafafa;
+}
+
+.sync-log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.sync-log-icon {
+  flex-shrink: 0;
+}
+
+.sync-log-msg {
+  word-break: break-word;
+}
+
+.sync-log-repair {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.sync-log-add {
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+.sync-log-warn {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.sync-log-success {
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 600;
+}
+
 
 
 

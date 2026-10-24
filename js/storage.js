@@ -8,6 +8,8 @@ const STORE_PDFS = 'pdf_files';
 const STORAGE_KEY_CUSTOM_NOTES = 'sshs_custom_notes';
 const STORAGE_KEY_CUSTOM_POSTERS = 'sshs_custom_posters';
 const STORAGE_KEY_DELETED_IDS = 'sshs_deleted_note_ids';
+const STORAGE_KEY_REPAIRED_PATHS = 'sshs_repaired_paths';
+const STORAGE_KEY_REPORTED_ISSUES = 'sshs_reported_issues';
 
 // Open IndexedDB
 function openDB() {
@@ -118,17 +120,132 @@ function saveCustomPosters(posters) {
   localStorage.setItem(STORAGE_KEY_CUSTOM_POSTERS, JSON.stringify(posters));
 }
 
+// Repaired Path Overrides (Physical File Manifest Synchronization)
+function getRepairedPaths() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_REPAIRED_PATHS);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveRepairedPaths(overrides) {
+  try {
+    localStorage.setItem(STORAGE_KEY_REPAIRED_PATHS, JSON.stringify(overrides || {}));
+  } catch (e) {
+    console.error('Error saving repaired paths:', e);
+  }
+}
+
+// Student & Viewer Issue Reports Storage
+function getReportedIssues() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_REPORTED_ISSUES);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveReportedIssue(reportData) {
+  try {
+    const issues = getReportedIssues();
+    const sanitize = (typeof Security !== 'undefined') ? Security.sanitizeInput : (s => String(s || '').trim());
+    const escape = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+
+    const issueId = 'issue-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+    const newIssue = {
+      id: issueId,
+      noteTitle: sanitize(reportData.noteTitle || 'Study Note'),
+      fileUrl: sanitize(reportData.fileUrl || ''),
+      issueType: sanitize(reportData.issueType || 'other'),
+      studentName: sanitize(reportData.studentName || 'Student (Anonymous)'),
+      studentClass: sanitize(reportData.studentClass || ''),
+      details: sanitize(reportData.details || ''),
+      timestamp: Date.now(),
+      formattedDate: new Date().toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Kolkata'
+      }),
+      status: 'pending' // 'pending' | 'resolved'
+    };
+
+    issues.unshift(newIssue);
+    localStorage.setItem(STORAGE_KEY_REPORTED_ISSUES, JSON.stringify(issues));
+    return newIssue;
+  } catch (e) {
+    console.error('Error saving reported issue:', e);
+    return null;
+  }
+}
+
+function updateReportedIssueStatus(issueId, newStatus) {
+  try {
+    const issues = getReportedIssues();
+    const target = issues.find(i => i.id === issueId);
+    if (target) {
+      target.status = newStatus;
+      target.resolvedAt = (newStatus === 'resolved') ? Date.now() : null;
+      localStorage.setItem(STORAGE_KEY_REPORTED_ISSUES, JSON.stringify(issues));
+      return true;
+    }
+  } catch (e) {
+    console.error('Error updating issue status:', e);
+  }
+  return false;
+}
+
+function deleteReportedIssue(issueId) {
+  try {
+    let issues = getReportedIssues();
+    issues = issues.filter(i => i.id !== issueId);
+    localStorage.setItem(STORAGE_KEY_REPORTED_ISSUES, JSON.stringify(issues));
+    return true;
+  } catch (e) {
+    console.error('Error deleting reported issue:', e);
+    return false;
+  }
+}
+
+function clearResolvedReportedIssues() {
+  try {
+    let issues = getReportedIssues();
+    issues = issues.filter(i => i.status !== 'resolved');
+    localStorage.setItem(STORAGE_KEY_REPORTED_ISSUES, JSON.stringify(issues));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function clearAllReportedIssues() {
+  try {
+    localStorage.removeItem(STORAGE_KEY_REPORTED_ISSUES);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 // Merge default data with custom/uploaded data (All self-hosted)
 async function getMergedClassesData() {
   // Deep clone default CLASSES_DATA
   const merged = JSON.parse(JSON.stringify(CLASSES_DATA));
   const deletedIds = new Set(getDeletedNoteIds());
   const customNotes = getCustomNotes();
+  const pathOverrides = getRepairedPaths();
 
-  // 1. Filter out deleted default notes
+  // 1. Filter out deleted default notes & apply repaired file paths
   for (const classKey in merged) {
     merged[classKey].subjects.forEach(subject => {
       subject.notes = subject.notes.filter(n => !deletedIds.has(n.id));
+      subject.notes.forEach(n => {
+        if (pathOverrides[n.id]) {
+          n.fileUrl = pathOverrides[n.id];
+        }
+      });
     });
   }
 
@@ -294,4 +411,12 @@ if (typeof window !== 'undefined') {
   window.saveCustomPosters = saveCustomPosters;
   window.deleteDriveNote = deleteDriveNote;
   window.clearAllDriveNotes = clearAllDriveNotes;
+  window.getRepairedPaths = getRepairedPaths;
+  window.saveRepairedPaths = saveRepairedPaths;
+  window.getReportedIssues = getReportedIssues;
+  window.saveReportedIssue = saveReportedIssue;
+  window.updateReportedIssueStatus = updateReportedIssueStatus;
+  window.deleteReportedIssue = deleteReportedIssue;
+  window.clearResolvedReportedIssues = clearResolvedReportedIssues;
+  window.clearAllReportedIssues = clearAllReportedIssues;
 }
