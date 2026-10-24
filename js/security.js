@@ -21,7 +21,7 @@ const Security = {
     const trimmed = rawUrl.trim();
 
     // Allow safe relative paths
-    if (trimmed.startsWith('./') || trimmed.startsWith('/') || trimmed.startsWith('notes/')) {
+    if (trimmed.startsWith('./') || trimmed.startsWith('/') || trimmed.startsWith('notes/') || trimmed.startsWith('notices/')) {
       // Disallow path traversal attacks
       if (trimmed.includes('../') || trimmed.includes('..\\')) {
         console.warn('[Security] Path traversal attempt blocked:', rawUrl);
@@ -142,7 +142,7 @@ const Security = {
   },
 
   // 7. Smart Automatic File Classification for IT/ITeS (Class 9-12 & Subject Sections)
-  // Supports both Filename and Google Drive Folder Context (DDEO, JSD, QUESTIONS, BOOKS, HTML NOTES, ExtraS, COMMON)
+  // Supports both Filename and Folder Context (DDEO, JSD, QUESTIONS, BOOKS, HTML NOTES, ExtraS, COMMON)
   autoCategorize(filename, folderContext = '') {
     if (!filename || typeof filename !== 'string') {
       return { classKey: '9th', categoryId: 'part-b', categoryName: '💻 Part B: IT Specific Skills', cleanTitle: 'IT Study Notes', isSyllabus: false };
@@ -226,7 +226,7 @@ const Security = {
     let folderHeader = 'DDEO';
     let subFolder = 'all';
 
-    // Prioritize explicit folder context from Google Drive hierarchy
+    // Prioritize explicit folder context from folder hierarchy
     const fc = folderContext.toLowerCase();
     if (fc.includes('all classes') || fc.includes('all_classes')) {
       folderHeader = 'ALL_CLASSES';

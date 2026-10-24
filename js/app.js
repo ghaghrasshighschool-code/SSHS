@@ -1,6 +1,6 @@
 // Application Controller for SS+2 High School Ghaghra Notes App
 
-let currentMode = 'folder'; // 'folder' (primary Google Drive folder headers) | 'class' (secondary)
+let currentMode = 'folder'; // 'folder' (primary self-hosted folder categories) | 'class' (secondary)
 let currentFolderCategory = 'DDEO';
 let currentSubFolder = 'all';
 let currentClass = '9th';
@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderPosters();
   setupNetworkListeners();
   setupSearch();
-  checkGoogleDriveSync();
 });
 
 // Auto-reload data when user switches back to this tab (e.g. from Admin portal)
@@ -52,27 +51,6 @@ window.addEventListener('focus', async () => {
     renderNotes();
   }
 });
-
-// Auto-sync Google Drive notes in background if configured and online
-async function checkGoogleDriveSync() {
-  if (typeof GDrive === 'undefined' || !navigator.onLine) return;
-  const config = GDrive.getConfig();
-  if (!config.autoSync || !config.scriptUrl) return;
-
-  try {
-    const result = await GDrive.syncFromAppsScript();
-    if (result && result.count > 0) {
-      console.log('[GDrive] Background auto-sync pulled', result.count, 'notes');
-      await reloadAllData();
-      renderFolderCategories();
-      if (notesScreen && notesScreen.classList.contains('active')) {
-        renderNotes();
-      }
-    }
-  } catch (e) {
-    console.debug('[GDrive] Background auto-sync note:', e.message);
-  }
-}
 
 async function reloadAllData() {
   try {
@@ -91,6 +69,10 @@ async function reloadAllData() {
     } else if (typeof FOLDER_CATEGORIES_CONFIG !== 'undefined') {
       appFolderData = FOLDER_CATEGORIES_CONFIG;
     }
+
+    if (typeof resolvePostersBlobs === 'function') {
+      await resolvePostersBlobs();
+    }
   } catch (err) {
     console.error('Error reloading app data:', err);
     if (typeof CLASSES_DATA !== 'undefined') {
@@ -102,7 +84,7 @@ async function reloadAllData() {
   }
 }
 
-// Render Page 1 Vocational Folder Header Categories (Google Drive Hierarchy)
+// Render Page 1 Vocational Folder Header Categories (Self-Hosted Library Hierarchy)
 function renderFolderCategories() {
   if (!folderCategoriesContainer) return;
   const categories = appFolderData || (typeof window !== 'undefined' && window.FOLDER_CATEGORIES_CONFIG) || FOLDER_CATEGORIES_CONFIG || {};
@@ -124,7 +106,7 @@ function renderFolderCategories() {
     `).join('');
 
     return `
-      <div class="folder-card" onclick="selectFolderCategory('${esc(cat.id)}', 'all')">
+      <div class="folder-card" style="--card-accent: ${badgeColor};" onclick="selectFolderCategory('${esc(cat.id)}', 'all')">
         <div class="folder-card-top">
           <div class="folder-icon-wrap" style="background: ${badgeColor}18; color: ${badgeColor};">
             ${esc(cat.icon || '📁')}
@@ -162,6 +144,10 @@ function renderPosters() {
 
   posterContainer.innerHTML = posters.map(p => {
     const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+    const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
+    const hasFile = p.fileUrl && p.fileUrl.trim() !== '';
+    const safeUrl = hasFile ? sanitizeUrl(p.fileUrl) : '';
+
     return `
       <div class="poster-card">
         <div class="poster-icon">${esc(p.icon || '📢')}</div>
@@ -172,6 +158,16 @@ function renderPosters() {
             <span class="poster-item-tag">${esc(p.tag || 'Notice')}</span>
             <span class="poster-item-date">${esc(p.date || '')}</span>
           </div>
+          ${hasFile ? `
+            <div class="poster-actions">
+              <button class="btn-poster-action" onclick="openPdfViewer('${safeUrl}', '${esc(p.title)}')" title="View Notice Document">
+                📄 View Circular
+              </button>
+              <a class="btn-poster-action" href="${safeUrl}" download onclick="trackDownload('${esc(p.title)}')">
+                📥 Download
+              </a>
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -238,7 +234,7 @@ function filterSubFolder(subFolderId) {
 
 // Select Class (Secondary: Diamond Quadrants or Quick Buttons)
 async function selectClass(className) {
-  // Always fetch latest merged data so newly synced Google Drive notes appear immediately
+  // Always fetch latest merged data so newly uploaded notes appear immediately
   await reloadAllData();
 
   const sourceData = (appClassesData && appClassesData[className])
@@ -257,7 +253,7 @@ async function selectClass(className) {
   if (searchInput) searchInput.value = '';
 
   const classData = sourceData[className];
-  if (classHeading) classHeading.textContent = `${classData.name} IT/ITeS Notes & Syllabus -`;
+  if (classHeading) classHeading.textContent = `${classData.name} IT/ITeS Notes & Syllabus`;
   if (classSubheading) classSubheading.textContent = `${classData.hindiName} • ${classData.description}`;
 
   renderSubjectFilters(classData);
@@ -411,7 +407,6 @@ function renderNotes() {
   allNotes.forEach(n => currentNotesMap.set(String(n.id), n));
 
   notesContainer.innerHTML = allNotes.map((n, idx) => {
-    const isDrive = Boolean(n.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(n.fileUrl)));
     const safeUrl = sanitizeUrl(n.fileUrl);
     const safeId = sanitizeFilename(n.id || `note-${idx}`);
     const isSyl = n.isSyllabus || (n.subjectId === 'syllabus') || (n.id && n.id.includes('syl'));
@@ -421,7 +416,7 @@ function renderNotes() {
     const classDetail = n.classKey ? ` • Class ${n.classKey}` : (n.subjectName ? ` • ${n.subjectName}` : '');
 
     return `
-    <div class="note-card ${isSyl ? 'syllabus-card' : ''} ${isDrive ? 'gdrive-card' : ''}">
+    <div class="note-card ${isSyl ? 'syllabus-card' : ''}" style="--note-accent: ${esc(n.subjectColor || '#2563eb')};">
       <div class="note-card-top">
         <div>
           <div style="font-size: 0.72rem; font-weight: 700; color: ${esc(n.subjectColor || '#2563eb')}; margin-bottom: 2px;">
@@ -431,22 +426,21 @@ function renderNotes() {
           <div class="note-hindi-title">${esc(n.hindiTitle || '')}</div>
         </div>
         <div class="badge-stack">
-          ${isDrive ? '<span class="note-badge-gdrive">☁️ DRIVE</span>' : ''}
           ${isSyl ? '<span class="note-badge-syllabus">📋 OFFICIAL SYLLABUS</span>' : (n.isNew ? '<span class="note-badge">NEW</span>' : '')}
         </div>
       </div>
 
       <div class="note-meta">
         <span class="note-meta-item">📄 ${esc(n.pages || 'PDF')} Pages</span>
-        <span class="note-meta-item">💾 ${esc(n.fileSize || 'Google Drive')}</span>
-        <span class="note-meta-item">📅 ${esc(n.uploadedAt || 'Synced')}</span>
+        <span class="note-meta-item">💾 ${esc(n.fileSize || 'Self-Hosted')}</span>
+        <span class="note-meta-item">📅 ${esc(n.uploadedAt || 'Ready')}</span>
       </div>
 
       <div class="note-actions">
         <button class="btn-action btn-view" onclick="handleViewNote('${safeNoteKey}')">
           👁️ View Notes
         </button>
-        <a class="btn-action btn-download" href="${safeUrl}" download="${safeId}" ${isDrive ? 'target="_blank" rel="noopener noreferrer"' : ''} onclick="handleDownloadClick('${safeNoteKey}')">
+        <a class="btn-action btn-download" href="${safeUrl}" download="${safeId}" onclick="handleDownloadClick('${safeNoteKey}')">
           📥 Download
         </a>
       </div>
@@ -458,17 +452,10 @@ function renderNotes() {
 function handleViewNote(noteId) {
   const note = currentNotesMap.get(String(noteId));
   if (!note) return;
-  const isDrive = Boolean(note.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(note.fileUrl)));
   const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
   const safeUrl = sanitizeUrl(note.fileUrl);
-  const safePreviewUrl = (isDrive && note.previewUrl)
-    ? sanitizeUrl(note.previewUrl)
-    : (isDrive && typeof GDrive !== 'undefined' ? GDrive.toEmbeddableUrl(safeUrl) : safeUrl);
-  const safeDriveUrl = (isDrive && note.driveViewUrl)
-    ? sanitizeUrl(note.driveViewUrl)
-    : (isDrive && typeof GDrive !== 'undefined' ? GDrive.getViewUrl(GDrive.extractId(safeUrl)) : '');
 
-  openPdfViewer(safeUrl, note.title, safePreviewUrl, safeDriveUrl);
+  openPdfViewer(safeUrl, note.title);
 }
 
 function handleDownloadClick(noteId) {
@@ -477,16 +464,12 @@ function handleDownloadClick(noteId) {
   trackDownload(title);
 }
 
-// PDF Viewer Modal
-function openPdfViewer(url, title, customPreviewUrl = null, customDriveUrl = null) {
+// PDF Viewer Modal (Self-Hosted Direct Viewer)
+function openPdfViewer(url, title) {
   const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
   const sanitizeFilename = (typeof Security !== 'undefined') ? Security.sanitizeFilename : (f => f);
 
-  const isDrive = Boolean((typeof GDrive !== 'undefined') && (GDrive.isGoogleDriveUrl(url) || (customPreviewUrl && GDrive.isGoogleDriveUrl(customPreviewUrl))));
-  const targetEmbedUrl = customPreviewUrl || (isDrive && typeof GDrive !== 'undefined' ? GDrive.toEmbeddableUrl(url) : url);
-  const targetDownloadUrl = isDrive && typeof GDrive !== 'undefined' ? GDrive.toDirectDownloadUrl(url) : url;
-
-  const safeFrameUrl = sanitizeUrl(targetEmbedUrl);
+  const safeFrameUrl = sanitizeUrl(url);
 
   if (!safeFrameUrl || safeFrameUrl === 'about:blank') {
     showToast('⚠️ Cannot open document: Invalid or dangerous file URL');
@@ -494,51 +477,22 @@ function openPdfViewer(url, title, customPreviewUrl = null, customDriveUrl = nul
   }
 
   const safeTitle = (typeof Security !== 'undefined') ? Security.escapeHtml(title) : (title || 'Study Note');
-  const safeFilename = sanitizeFilename(title || 'Study_Notes');
+  const safeFilename = sanitizeFilename(title || 'Study_Notes') + '.pdf';
 
   if (modalTitle) modalTitle.textContent = safeTitle;
   if (modalFrame) modalFrame.src = safeFrameUrl;
 
-  const modalDriveHelper = document.getElementById('modalDriveHelper');
-  const modalDirectOpenBtn = document.getElementById('modalDirectOpenBtn');
   const modalExternalLink = document.getElementById('modalExternalLink');
-  const modalDriveBtn = document.getElementById('modalDriveBtn');
-
-  if (isDrive) {
-    const driveDirectLink = customDriveUrl || (typeof GDrive !== 'undefined' ? GDrive.getViewUrl(GDrive.extractId(url)) : url);
-    const safeDirectLink = sanitizeUrl(driveDirectLink);
-
-    if (modalDriveHelper) modalDriveHelper.style.display = 'flex';
-    if (modalDirectOpenBtn) modalDirectOpenBtn.href = safeDirectLink;
-    if (modalExternalLink) {
-      modalExternalLink.href = safeDirectLink;
-      modalExternalLink.style.display = 'inline-flex';
-    }
-    if (modalDriveBtn) {
-      modalDriveBtn.href = safeDirectLink;
-      modalDriveBtn.style.display = 'inline-flex';
-    }
-  } else {
-    if (modalDriveHelper) modalDriveHelper.style.display = 'none';
-    if (modalExternalLink) {
-      modalExternalLink.href = safeFrameUrl;
-      modalExternalLink.style.display = 'inline-flex';
-    }
-    if (modalDriveBtn) {
-      modalDriveBtn.style.display = 'none';
-    }
+  if (modalExternalLink) {
+    modalExternalLink.href = safeFrameUrl;
+    modalExternalLink.style.display = 'inline-flex';
   }
 
   if (modalDownloadBtn) {
-    modalDownloadBtn.href = sanitizeUrl(targetDownloadUrl);
+    modalDownloadBtn.href = safeFrameUrl;
     modalDownloadBtn.setAttribute('download', safeFilename);
-    if (isDrive) {
-      modalDownloadBtn.setAttribute('target', '_blank');
-      modalDownloadBtn.setAttribute('rel', 'noopener noreferrer');
-    } else {
-      modalDownloadBtn.removeAttribute('target');
-      modalDownloadBtn.removeAttribute('rel');
-    }
+    modalDownloadBtn.removeAttribute('target');
+    modalDownloadBtn.removeAttribute('rel');
   }
 
   if (pdfModal) pdfModal.classList.add('active');
@@ -548,8 +502,6 @@ function openPdfViewer(url, title, customPreviewUrl = null, customDriveUrl = nul
 function closePdfViewer() {
   if (pdfModal) pdfModal.classList.remove('active');
   if (modalFrame) modalFrame.src = 'about:blank';
-  const modalDriveHelper = document.getElementById('modalDriveHelper');
-  if (modalDriveHelper) modalDriveHelper.style.display = 'none';
   const modalExternalLink = document.getElementById('modalExternalLink');
   if (modalExternalLink) modalExternalLink.style.display = 'none';
   document.body.style.overflow = 'auto';

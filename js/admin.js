@@ -655,12 +655,11 @@ function switchTab(tabId) {
   const activeContent = document.getElementById(tabId);
   if (activeContent) activeContent.classList.add('active');
 
-  const tabList = ['bulkUploadTab', 'gdriveTab', 'uploadTab', 'manageTab', 'noticesTab', 'exportTab', 'profileTab'];
+  const tabList = ['bulkUploadTab', 'uploadTab', 'manageTab', 'noticesTab', 'exportTab', 'profileTab'];
   const btnIndex = tabList.indexOf(tabId);
   const buttons = document.querySelectorAll('.admin-tab-btn');
   if (buttons[btnIndex]) buttons[btnIndex].classList.add('active');
 
-  if (tabId === 'gdriveTab') loadGDriveTab();
   if (tabId === 'manageTab') renderManageTable();
   if (tabId === 'noticesTab') renderManageNotices();
   if (tabId === 'profileTab') loadAdminProfileData();
@@ -1150,9 +1149,15 @@ async function handleNoteUpload(e) {
 
     const isSyllabus = (subjectId === 'syllabus' || (typeof Security !== 'undefined' && Security.autoCategorize(title).isSyllabus));
 
+    let folderCategory = document.getElementById('noteFolderCategory') ? document.getElementById('noteFolderCategory').value : 'auto';
+    if (folderCategory === 'auto') {
+      folderCategory = (classKey === '9th' || classKey === '10th') ? 'DDEO' : 'JSD';
+    }
+
     const newNote = {
       id: noteId,
       classKey: classKey,
+      folderHeader: folderCategory,
       subjectId: subjectId,
       subjectName: subjectName,
       subjectIcon: subjectIcon,
@@ -1223,23 +1228,20 @@ async function renderManageTable() {
           if (!matchTitle && !matchHindi && !matchSubject && !matchFolder) return;
         }
 
-        const isDrive = Boolean(note.isGoogleDrive || (typeof GDrive !== 'undefined' && GDrive.isGoogleDriveUrl(note.fileUrl)));
         const isCustom = customIds.has(note.id);
         const safeUrl = sanitizeUrl(note.fileUrl);
-        const viewUrl = (isDrive && note.previewUrl) ? sanitizeUrl(note.previewUrl) : safeUrl;
+        const viewUrl = safeUrl;
         const isSyl = note.isSyllabus || subject.id === 'syllabus';
 
-        let sourceBadge = '<span style="color:#64748b; font-weight:600;">Default</span>';
-        if (isDrive) {
-          sourceBadge = '<span class="note-badge-gdrive" style="font-size: 0.68rem; padding: 2px 6px;">☁️ Google Drive</span>';
-        } else if (isCustom) {
-          sourceBadge = '<span style="color:#059669; font-weight:700;">Uploaded</span>';
+        let sourceBadge = '<span style="color:#2563eb; font-weight:700;">Hosted (Codebase)</span>';
+        if (isCustom) {
+          sourceBadge = '<span style="color:#059669; font-weight:700;">Uploaded (Local)</span>';
         }
 
         rows.push(`
           <tr>
             <td style="text-align: center;">
-              <input type="checkbox" class="note-select-cb" value="${esc(note.id)}" data-custom="${isCustom}" data-drive="${isDrive}" onchange="updateBulkDeleteState()" style="width: 16px; height: 16px; cursor: pointer; accent-color: #dc2626;">
+              <input type="checkbox" class="note-select-cb" value="${esc(note.id)}" data-custom="${isCustom}" onchange="updateBulkDeleteState()" style="width: 16px; height: 16px; cursor: pointer; accent-color: #dc2626;">
             </td>
             <td>
               <div style="font-weight: 700; font-size: 0.72rem; color: #1e3a8a; margin-bottom: 2px;">📁 ${esc(noteFolderRaw)}</div>
@@ -1258,7 +1260,7 @@ async function renderManageTable() {
             <td class="text-right">
               <div class="action-btns">
                 <a href="${viewUrl}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="View Note">👁️ View</a>
-                <button class="btn-icon delete" onclick="deleteNote('${esc(note.id)}', ${isCustom}, ${isDrive})" title="Delete Note">🗑️ Delete</button>
+                <button class="btn-icon delete" onclick="deleteNote('${esc(note.id)}', ${isCustom})" title="Delete Note">🗑️ Delete</button>
               </div>
             </td>
           </tr>
@@ -1336,17 +1338,13 @@ async function handleBulkDeleteNotes() {
   }
 
   const customIdsToDelete = [];
-  const driveIdsToDelete = [];
   const defaultIdsToDelete = [];
 
   checkedBoxes.forEach(cb => {
     const id = cb.value;
     const isCustom = cb.getAttribute('data-custom') === 'true';
-    const isDrive = cb.getAttribute('data-drive') === 'true';
 
-    if (isDrive) {
-      driveIdsToDelete.push(id);
-    } else if (isCustom) {
+    if (isCustom) {
       customIdsToDelete.push(id);
     } else {
       defaultIdsToDelete.push(id);
@@ -1363,22 +1361,11 @@ async function handleBulkDeleteNotes() {
     await Promise.all(customIdsToDelete.map(id => deletePdfBlob(id)));
   }
 
-  // 2. Process Google Drive synced notes
-  if (driveIdsToDelete.length > 0) {
-    if (typeof GDrive !== 'undefined') {
-      const driveNotes = GDrive.getDriveNotes();
-      const driveIdSet = new Set(driveIdsToDelete);
-      const filtered = driveNotes.filter(n => !driveIdSet.has(n.id));
-      GDrive.saveDriveNotes(filtered);
-    }
-  }
-
-  // 3. Mark in deleted note IDs list so they don't resurface
-  const allIdsToHide = [...driveIdsToDelete, ...defaultIdsToDelete];
-  if (allIdsToHide.length > 0) {
+  // 2. Mark in deleted note IDs list so they don't resurface
+  if (defaultIdsToDelete.length > 0) {
     const deleted = getDeletedNoteIds();
     const deletedSet = new Set(deleted);
-    allIdsToHide.forEach(id => deletedSet.add(id));
+    defaultIdsToDelete.forEach(id => deletedSet.add(id));
     saveDeletedNoteIds(Array.from(deletedSet));
   }
 
@@ -1388,19 +1375,10 @@ async function handleBulkDeleteNotes() {
   await loadDashboardData();
 }
 
-async function deleteNote(noteId, isCustom, isDrive = false) {
+async function deleteNote(noteId, isCustom) {
   if (!confirm('Are you sure you want to delete this study note / syllabus?')) return;
 
-  if (isDrive) {
-    if (typeof deleteDriveNote === 'function') {
-      deleteDriveNote(noteId);
-    }
-    const deleted = getDeletedNoteIds();
-    if (!deleted.includes(noteId)) {
-      deleted.push(noteId);
-      saveDeletedNoteIds(deleted);
-    }
-  } else if (isCustom) {
+  if (isCustom) {
     let custom = getCustomNotes();
     custom = custom.filter(n => n.id !== noteId);
     saveCustomNotes(custom);
@@ -1421,6 +1399,32 @@ async function deleteNote(noteId, isCustom, isDrive = false) {
 // ==============================================
 // 7. MANAGE NOTICES / POSTERS (SANITIZED RENDERING)
 // ==============================================
+// Notice File Attachment Handling
+let selectedNoticeFile = null;
+
+function handleNoticeFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const preview = document.getElementById('noticeFileNamePreview');
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    alert('Invalid File: Only PDF documents are allowed for notice attachments.');
+    e.target.value = '';
+    selectedNoticeFile = null;
+    if (preview) preview.textContent = 'No file chosen (Optional)';
+    return;
+  }
+
+  selectedNoticeFile = file;
+  const safeFilename = (typeof Security !== 'undefined') ? Security.sanitizeFilename(file.name) : file.name;
+  const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+  if (preview) {
+    preview.textContent = `Verified PDF: ${safeFilename} (${sizeMb} MB)`;
+    preview.style.color = '#059669';
+    preview.style.fontWeight = '700';
+  }
+}
+
 function renderManageNotices() {
   const container = document.getElementById('manageNoticesList');
   const posters = getMergedPostersData();
@@ -1435,7 +1439,10 @@ function renderManageNotices() {
   container.innerHTML = posters.map(p => `
     <div class="notice-item">
       <div>
-        <div class="notice-item-title">${esc(p.icon || '📢')} [${esc(p.tag || 'Notice')}] ${esc(p.title)}</div>
+        <div class="notice-item-title">
+          ${esc(p.icon || '📢')} [${esc(p.tag || 'Notice')}] ${esc(p.title)}
+          ${p.fileUrl ? `<span style="font-size: 0.65rem; color: #0284c7; background: #e0f2fe; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">📄 Attached PDF</span>` : ''}
+        </div>
         <div class="notice-item-sub">${esc(p.subtitle)}</div>
         <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">Date: ${esc(p.date || '')}</div>
       </div>
@@ -1444,7 +1451,7 @@ function renderManageNotices() {
   `).join('');
 }
 
-function handleAddNotice(e) {
+async function handleAddNotice(e) {
   e.preventDefault();
   const rawTitle = document.getElementById('noticeTitle').value.trim();
   const rawSub = document.getElementById('noticeSub').value.trim();
@@ -1452,22 +1459,45 @@ function handleAddNotice(e) {
   const icon = document.getElementById('noticeIcon').value;
 
   const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+  const noticeId = Date.now();
+
+  let fileUrl = '';
+  let isBlob = false;
+
+  if (selectedNoticeFile) {
+    const safeFilename = (typeof Security !== 'undefined') ? Security.sanitizeFilename(selectedNoticeFile.name) : selectedNoticeFile.name;
+    await savePdfBlob(`notice-${noticeId}`, selectedNoticeFile, safeFilename);
+    fileUrl = `./notices/${safeFilename}`;
+    isBlob = true;
+  }
 
   const posters = getMergedPostersData();
   const newNotice = {
-    id: Date.now(),
+    id: noticeId,
     tag: esc(tag),
     badgeColor: 'bg-blue-500',
     title: esc(rawTitle),
     subtitle: esc(rawSub),
     date: 'Just Now',
-    icon: esc(icon)
+    icon: esc(icon),
+    fileUrl: fileUrl,
+    isBlob: isBlob
   };
 
   posters.unshift(newNotice);
   saveCustomPosters(posters);
 
   document.getElementById('noticeForm').reset();
+  selectedNoticeFile = null;
+  const noticeFileInput = document.getElementById('noticeFileInput');
+  if (noticeFileInput) noticeFileInput.value = '';
+  const noticePreview = document.getElementById('noticeFileNamePreview');
+  if (noticePreview) {
+    noticePreview.textContent = 'No file chosen (Optional)';
+    noticePreview.style.color = '#64748b';
+    noticePreview.style.fontWeight = 'normal';
+  }
+
   showToast('📢 Notice published to student home screen!');
   renderManageNotices();
   loadDashboardData();
@@ -1556,259 +1586,15 @@ function handleResetDefaults() {
   renderManageTable();
 }
 
-// ==============================================
-// 9. GOOGLE DRIVE INTEGRATION & SYNC CONTROLLER
-// ==============================================
-function loadGDriveTab() {
-  if (typeof GDrive === 'undefined') return;
-  const config = GDrive.getConfig();
-
-  const scriptInput = document.getElementById('gdriveScriptUrl');
-  const folderInput = document.getElementById('gdriveFolderId');
-  const autoSyncInput = document.getElementById('gdriveAutoSync');
-  const sheetInput = document.getElementById('gdriveSheetUrl');
-  const statusBadge = document.getElementById('gdriveStatusBadge');
-  const statusText = document.getElementById('gdriveStatusText');
-  const lastSynced = document.getElementById('gdriveLastSynced');
-  const countEl = document.getElementById('gdriveNotesCount');
-
-  if (scriptInput) scriptInput.value = config.scriptUrl || '';
-  if (folderInput) folderInput.value = config.folderId || '';
-  if (autoSyncInput) autoSyncInput.checked = Boolean(config.autoSync);
-  if (sheetInput) sheetInput.value = config.sheetUrl || '';
-
-  const driveNotes = GDrive.getDriveNotes();
-  if (countEl) countEl.textContent = driveNotes.length;
-
-  if (config.lastSyncTime) {
-    const d = new Date(config.lastSyncTime);
-    if (lastSynced) lastSynced.textContent = d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } else {
-    if (lastSynced) lastSynced.textContent = 'Never';
-  }
-
-  if (config.scriptUrl) {
-    if (statusBadge) {
-      statusBadge.textContent = '🟢 Cloud Sync Active';
-      statusBadge.style.color = '#047857';
-      statusBadge.style.borderColor = '#6ee7b7';
-    }
-    if (statusText) statusText.innerHTML = '<strong style="color: #059669;">Connected to Google Apps Script Web App</strong>';
-  } else if (config.sheetUrl) {
-    if (statusBadge) {
-      statusBadge.textContent = '📊 Sheet Connected';
-      statusBadge.style.color = '#0284c7';
-      statusBadge.style.borderColor = '#7dd3fc';
-    }
-    if (statusText) statusText.innerHTML = '<strong style="color: #0284c7;">Connected to Google Sheet Catalog</strong>';
-  } else {
-    if (statusBadge) {
-      statusBadge.textContent = '⚪ Not Configured';
-      statusBadge.style.color = '#64748b';
-      statusBadge.style.borderColor = '#cbd5e1';
-    }
-    if (statusText) statusText.textContent = 'Enter Web App URL or paste links below to connect.';
-  }
-}
-
-async function handleSaveDriveConfig(e) {
-  e.preventDefault();
-  if (typeof GDrive === 'undefined') return;
-
-  const scriptUrl = (document.getElementById('gdriveScriptUrl').value || '').trim();
-  const folderId = (document.getElementById('gdriveFolderId').value || '').trim();
-  const autoSync = document.getElementById('gdriveAutoSync').checked;
-
-  GDrive.saveConfig({ scriptUrl, folderId, autoSync });
-  showToast('💾 Google Drive configuration saved!');
-  loadGDriveTab();
-
-  if (scriptUrl) {
-    await handleManualDriveSync();
-  }
-}
-
-async function handleManualDriveSync() {
-  if (typeof GDrive === 'undefined') return;
-  const config = GDrive.getConfig();
-
-  if (!config.scriptUrl) {
-    alert('Please enter and save your Google Apps Script Web App URL first.');
-    return;
-  }
-
-  const btn = document.getElementById('btnSyncDriveNow');
-  const origText = btn ? btn.innerHTML : 'Sync';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Syncing with Google Drive...';
-  }
-
-  try {
-    const result = await GDrive.syncFromAppsScript();
-    showToast(`☁️ Synced ${result.count} notes from Google Drive folder: "${result.folderName}"!`);
-    loadGDriveTab();
-    loadDashboardData();
-    renderManageTable();
-  } catch (err) {
-    console.error('[GDrive Sync Error]:', err);
-    alert(`Sync Failed: ${err.message}\n\nPlease check that your Web App URL is correct and deployed with "Who has access: Anyone".`);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = origText;
-    }
-  }
-}
-
-function handleClearDriveNotes() {
-  if (!confirm('Are you sure you want to remove all synced Google Drive notes from this device? (Files on Google Drive remain safe).')) return;
-  if (typeof clearAllDriveNotes === 'function') {
-    clearAllDriveNotes();
-  }
-  showToast('🗑️ Synced Google Drive notes cleared');
-  loadGDriveTab();
-  loadDashboardData();
-  renderManageTable();
-}
-
-async function handleSyncFromSheet(e) {
-  e.preventDefault();
-  if (typeof GDrive === 'undefined') return;
-
-  const sheetUrl = (document.getElementById('gdriveSheetUrl').value || '').trim();
-  if (!sheetUrl) {
-    alert('Please enter a Google Sheet URL or ID.');
-    return;
-  }
-
-  try {
-    const result = await GDrive.syncFromGoogleSheet(sheetUrl);
-    showToast(`📊 Successfully imported ${result.count} notes from Google Sheet!`);
-    loadGDriveTab();
-    loadDashboardData();
-    renderManageTable();
-  } catch (err) {
-    alert(`Sheet Import Failed: ${err.message}\n\nPlease ensure the Google Sheet is shared as "Anyone with the link can view".`);
-  }
-}
-
-function handleImportDirectDriveLinks(e) {
-  e.preventDefault();
-  if (typeof GDrive === 'undefined') return;
-
-  const text = (document.getElementById('gdriveLinksInput').value || '').trim();
-  const overrideClass = document.getElementById('gdriveOverrideClass').value || null;
-  const overrideSection = document.getElementById('gdriveOverrideSection').value || null;
-
-  if (!text) {
-    alert('Please paste at least one Google Drive link.');
-    return;
-  }
-
-  const added = GDrive.importLinks(text, overrideClass, overrideSection);
-  if (added.length === 0) {
-    alert('Could not find any valid Google Drive file links in the input. Ensure URLs are in standard Google Drive format.');
-    return;
-  }
-
-  document.getElementById('gdriveLinksInput').value = '';
-  showToast(`✅ Added ${added.length} Google Drive note(s) to portal!`);
-  loadGDriveTab();
-  loadDashboardData();
-  renderManageTable();
-}
-
-function toggleSetupGuide() {
-  const content = document.getElementById('setupGuideContent');
-  const icon = document.getElementById('guideToggleIcon');
-  if (!content) return;
-  const isHidden = content.style.display === 'none';
-  content.style.display = isHidden ? 'block' : 'none';
-  if (icon) icon.textContent = isHidden ? '▲' : '▼';
-}
-
-function copyAppsScriptCode() {
-  const code = `/**
- * SS+2 HIGH SCHOOL GHAGHRA - GOOGLE DRIVE NOTES SYNC BACKEND
- * Deploy as Web App -> Execute as: Me -> Who has access: Anyone
- */
-var DEFAULT_FOLDER_ID = "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE";
-
-function doGet(e) {
-  try {
-    var folderId = (e && e.parameter && e.parameter.folderId) ? e.parameter.folderId : DEFAULT_FOLDER_ID;
-    if (!folderId || folderId === "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE") {
-      return createJsonResponse({ status: "error", message: "Folder ID not configured" });
-    }
-    var folder = DriveApp.getFolderById(folderId);
-    var notes = [];
-
-    // Recursive crawler for multi-level folders (DDEO, JSD, QUESTIONS, BOOKS, etc.)
-    function scanFolder(currentFolder, path) {
-      var files = currentFolder.getFiles();
-      while (files.hasNext()) {
-        var file = files.next();
-        var name = file.getName();
-        if (file.getMimeType() === "application/pdf" || name.toLowerCase().endsWith(".pdf")) {
-          notes.push({
-            id: file.getId(),
-            name: name,
-            folder: currentFolder.getName(),
-            folderPath: path,
-            size: formatBytes(file.getSize()),
-            updated: Utilities.formatDate(file.getLastUpdated(), "Asia/Kolkata", "dd MMM yyyy"),
-            downloadUrl: "https://drive.google.com/uc?export=download&id=" + file.getId(),
-            previewUrl: "https://drive.google.com/file/d/" + file.getId() + "/preview",
-            viewUrl: file.getUrl()
-          });
-        }
-      }
-
-      var subfolders = currentFolder.getFolders();
-      while (subfolders.hasNext()) {
-        var sub = subfolders.next();
-        var newPath = path ? (path + " / " + sub.getName()) : sub.getName();
-        scanFolder(sub, newPath);
-      }
-    }
-
-    scanFolder(folder, folder.getName());
-
-    return createJsonResponse({
-      status: "success",
-      folderName: folder.getName(),
-      totalFiles: notes.length,
-      syncedAt: Utilities.formatDate(new Date(), "Asia/Kolkata", "dd MMM yyyy, hh:mm a"),
-      files: notes
-    });
-  } catch (err) {
-    return createJsonResponse({ status: "error", message: err.toString() });
-  }
-}
-
-function formatBytes(bytes) {
-  if (!bytes) return "0 B";
-  var k = 1024;
-  var sizes = ["B", "KB", "MB", "GB"];
-  var i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}
-
-function createJsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}`;
-
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(code).then(() => {
-      showToast('📋 Google Apps Script code copied to clipboard!');
-    }).catch(() => {
-      prompt('Copy code below:', code);
-    });
-  } else {
-    prompt('Copy code below:', code);
-  }
-}
+// Backward-compatible safe stubs (All notes are 100% self-hosted with website code)
+function loadGDriveTab() {}
+function handleSaveDriveConfig(e) { if (e && e.preventDefault) e.preventDefault(); }
+function handleManualDriveSync() {}
+function handleClearDriveNotes() {}
+function handleSyncFromSheet(e) { if (e && e.preventDefault) e.preventDefault(); }
+function handleImportDirectDriveLinks(e) { if (e && e.preventDefault) e.preventDefault(); }
+function toggleSetupGuide() {}
+function copyAppsScriptCode() {}
 
 // Toast helper
 function showToast(msg) {

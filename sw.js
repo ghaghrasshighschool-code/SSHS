@@ -1,5 +1,5 @@
 // Service Worker for SS+2 High School Ghaghra Notes App
-const CACHE_NAME = 'sshs-notes-v8';
+const CACHE_NAME = 'sshs-notes-v13';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,6 @@ const STATIC_ASSETS = [
   './css/admin.css',
   './js/security.js',
   './js/data.js',
-  './js/gdrive.js',
   './js/storage.js',
   './js/app.js',
   './js/admin.js',
@@ -17,7 +16,10 @@ const STATIC_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-192.png',
-  './icons/icon-maskable-512.png'
+  './icons/icon-maskable-512.png',
+  './notices/Notice_142_Notes_Hosted_Library.pdf',
+  './notices/Notice_Self_Hosted_Offline_Portal.pdf',
+  './notices/Notice_Android_PWA_Install_Guide.pdf'
 ];
 
 // Install Event: Pre-cache core shell
