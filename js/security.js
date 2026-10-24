@@ -27,6 +27,9 @@ const Security = {
         console.warn('[Security] Path traversal attempt blocked:', rawUrl);
         return 'about:blank';
       }
+      try {
+        trimmed = decodeURI(trimmed);
+      } catch (e) {}
       return encodeURI(trimmed);
     }
 

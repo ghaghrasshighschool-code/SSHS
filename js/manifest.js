@@ -1379,7 +1379,7 @@ const LibraryRepairEngine = {
 
   // Audit and Repair All Notes & Notices in Library
   async checkAndRepairLibrary(options = {}) {
-    const showModal = (options.showModal !== false);
+    const showModal = Boolean(options.showModal === true);
 
     const report = {
       timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
@@ -1730,43 +1730,59 @@ const LibraryRepairEngine = {
 if (typeof window !== 'undefined') {
   window.PHYSICAL_FILE_MANIFEST = PHYSICAL_FILE_MANIFEST;
   window.LibraryRepairEngine = LibraryRepairEngine;
-  window.runLibraryRepair = function(showModal = true) {
-    const modal = document.getElementById('librarySyncModal');
-    if (modal) {
-      const elProgress = document.getElementById('syncProgressState');
-      const elResults = document.getElementById('syncResultsState');
-      if (elProgress) elProgress.style.display = 'flex';
-      if (elResults) elResults.style.display = 'none';
-      modal.classList.add('active');
-      document.body.style.overflow = 'hidden';
+
+  // Fully Automatic Repair - NO POPUP OR MODAL
+  window.runLibraryRepair = async function(showModal = false) {
+    const btn = document.getElementById('btnQuickRepair') || document.querySelector('.btn-library-repair') || document.querySelector('.btn-sync-action');
+    let originalText = '';
+    if (btn) {
+      originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span>⚡</span> <span>Checking &amp; Repairing...</span>';
     }
-    setTimeout(() => {
-      LibraryRepairEngine.checkAndRepairLibrary({ showModal });
-    }, 150);
+
+    try {
+      // 1. Run automatic repair across all notes & notices folders silently
+      const report = await LibraryRepairEngine.checkAndRepairLibrary({ showModal: false });
+
+      // 2. Automatically refresh data and active view in place
+      if (typeof reloadAllData === 'function') {
+        await reloadAllData();
+        if (typeof currentMode !== 'undefined' && currentMode === 'folder' && typeof selectFolderCategory === 'function') {
+          selectFolderCategory(currentFolderCategory, currentSubFolder);
+        } else if (typeof currentClass !== 'undefined' && currentClass && typeof selectClass === 'function') {
+          selectClass(currentClass);
+        }
+      }
+
+      if (typeof loadDashboardData === 'function') {
+        await loadDashboardData();
+        if (typeof renderManageTable === 'function') renderManageTable();
+        if (typeof renderManageNotices === 'function') renderManageNotices();
+      }
+
+      // 3. Show clean inline toast notification (no pop up!)
+      const toastFn = (typeof showToast === 'function') ? showToast : ((typeof showAdminToast === 'function') ? showAdminToast : console.log);
+      if (report.totalRepairs > 0 || report.totalAdded > 0) {
+        toastFn(`⚡ Auto-repaired ${report.totalRepairs} path(s) and added ${report.totalAdded} new note(s)!`);
+      } else {
+        toastFn(`✅ All ${report.totalManifest} library files verified intact & healthy!`);
+      }
+    } catch (err) {
+      console.error('Library repair error:', err);
+      const toastFn = (typeof showToast === 'function') ? showToast : console.log;
+      toastFn('⚠️ Library check finished.');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
   };
+
   window.closeLibrarySyncModal = function() {
     const modal = document.getElementById('librarySyncModal');
     if (modal) modal.classList.remove('active');
     document.body.style.overflow = 'auto';
-  };
-  window.applyLibrarySyncAndReload = function() {
-    const modal = document.getElementById('librarySyncModal');
-    if (modal) modal.classList.remove('active');
-    document.body.style.overflow = 'auto';
-    if (typeof reloadAllData === 'function') {
-      reloadAllData();
-      if (typeof showToast === 'function') {
-        showToast('✅ Library refreshed! All files and paths are up to date.');
-      }
-    } else if (typeof loadDashboardData === 'function') {
-      loadDashboardData();
-      if (typeof renderManageTable === 'function') renderManageTable();
-      if (typeof renderManageNotices === 'function') renderManageNotices();
-      if (typeof showAdminToast === 'function') {
-        showAdminToast('✅ Admin dashboard synchronized with physical file manifest!');
-      }
-    } else {
-      window.location.reload();
-    }
   };
 }

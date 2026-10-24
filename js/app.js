@@ -450,8 +450,30 @@ function renderNotes() {
 
 // Quote-safe Note Action Handlers
 function handleViewNote(noteId) {
-  const note = currentNotesMap.get(String(noteId));
-  if (!note) return;
+  let note = currentNotesMap.get(String(noteId));
+  if (!note && typeof appClassesData !== 'undefined') {
+    for (const ck in appClassesData) {
+      for (const s of (appClassesData[ck].subjects || [])) {
+        const found = (s.notes || []).find(n => String(n.id) === String(noteId));
+        if (found) { note = found; break; }
+      }
+      if (note) break;
+    }
+  }
+  if (!note && typeof window !== 'undefined' && window.CLASSES_DATA) {
+    for (const ck in window.CLASSES_DATA) {
+      for (const s of (window.CLASSES_DATA[ck].subjects || [])) {
+        const found = (s.notes || []).find(n => String(n.id) === String(noteId));
+        if (found) { note = found; break; }
+      }
+      if (note) break;
+    }
+  }
+  if (!note) {
+    showToast('⚠️ Note details not found.');
+    return;
+  }
+
   const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
   const safeUrl = sanitizeUrl(note.fileUrl);
 
@@ -480,38 +502,47 @@ function openPdfViewer(url, title) {
   const safeFilename = sanitizeFilename(title || 'Study_Notes') + '.pdf';
 
   // Store active viewing note details for issue reporting
+  const activeClassStr = (typeof currentClass !== 'undefined' && currentClass) ? currentClass : '9th';
   window.currentViewingNote = {
     url: safeFrameUrl,
     title: safeTitle,
     rawTitle: title || 'Study Note',
-    activeClass: activeClass || '9th'
+    activeClass: activeClassStr
   };
 
-  if (modalTitle) modalTitle.textContent = safeTitle;
-  if (modalFrame) modalFrame.src = safeFrameUrl;
+  const elModal = document.getElementById('pdfModal');
+  const elTitle = document.getElementById('modalTitle');
+  const elFrame = document.getElementById('modalFrame');
+  const elDownload = document.getElementById('modalDownloadBtn');
+  const elExternalLink = document.getElementById('modalExternalLink');
 
-  const modalExternalLink = document.getElementById('modalExternalLink');
-  if (modalExternalLink) {
-    modalExternalLink.href = safeFrameUrl;
-    modalExternalLink.style.display = 'inline-flex';
+  if (elTitle) elTitle.textContent = safeTitle;
+  if (elFrame) elFrame.src = safeFrameUrl;
+
+  if (elExternalLink) {
+    elExternalLink.href = safeFrameUrl;
+    elExternalLink.style.display = 'inline-flex';
   }
 
-  if (modalDownloadBtn) {
-    modalDownloadBtn.href = safeFrameUrl;
-    modalDownloadBtn.setAttribute('download', safeFilename);
-    modalDownloadBtn.removeAttribute('target');
-    modalDownloadBtn.removeAttribute('rel');
+  if (elDownload) {
+    elDownload.href = safeFrameUrl;
+    elDownload.setAttribute('download', safeFilename);
+    elDownload.removeAttribute('target');
+    elDownload.removeAttribute('rel');
   }
 
-  if (pdfModal) pdfModal.classList.add('active');
+  if (elModal) elModal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
 function closePdfViewer() {
-  if (pdfModal) pdfModal.classList.remove('active');
-  if (modalFrame) modalFrame.src = 'about:blank';
-  const modalExternalLink = document.getElementById('modalExternalLink');
-  if (modalExternalLink) modalExternalLink.style.display = 'none';
+  const elModal = document.getElementById('pdfModal');
+  const elFrame = document.getElementById('modalFrame');
+  const elExternalLink = document.getElementById('modalExternalLink');
+
+  if (elModal) elModal.classList.remove('active');
+  if (elFrame) elFrame.src = 'about:blank';
+  if (elExternalLink) elExternalLink.style.display = 'none';
   document.body.style.overflow = 'auto';
 }
 

@@ -127,7 +127,7 @@
       </div>
 
       <div class="admin-nav-actions">
-        <button type="button" class="btn-header-sync" onclick="runLibraryRepair(true)" title="Check notes & notices folders, fix path associations, and auto-add new files">
+        <button type="button" class="btn-header-sync" onclick="runLibraryRepair(false)" title="Automatically check notes &amp; notices folders, fix path associations, and index new files">
           ⚡ Check &amp; Repair Library
         </button>
         <button type="button" class="btn-profile-badge" onclick="switchTab('profileTab')" title="Manage Admin Profile & Security">
@@ -412,7 +412,7 @@
                 <option value="11th">Class 11th</option>
                 <option value="12th">Class 12th</option>
               </select>
-              <button type="button" class="btn-primary text-sm" onclick="runLibraryRepair(true)" style="padding: 6px 12px; display: inline-flex; align-items: center; gap: 5px;" title="Verify file paths in notes/ folder and fix associations">
+              <button type="button" class="btn-primary text-sm" onclick="runLibraryRepair(false)" style="padding: 6px 12px; display: inline-flex; align-items: center; gap: 5px;" title="Automatically verify file paths in notes/ folder and fix associations">
                 ⚡ Check &amp; Repair Paths
               </button>
             </div>
@@ -537,7 +537,7 @@
               <p class="card-sub">Issues submitted by students from the PDF notes viewer regarding downloads, blank screens, or path errors.</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              <button type="button" class="btn-primary text-sm" onclick="runLibraryRepair(true)" style="padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <button type="button" class="btn-primary text-sm" onclick="runLibraryRepair(false)" style="padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Automatically check notes and notices folders and fix associations">
                 ⚡ Check &amp; Repair Library
               </button>
               <button type="button" class="btn-secondary text-sm" onclick="handleClearResolvedReports()" style="padding: 6px 12px;">
@@ -842,72 +842,6 @@
 
     </div>
 
-  </div>
-
-  <!-- ==============================================
-       LIBRARY AUDIT & AUTO-REPAIR ENGINE MODAL
-       ============================================== -->
-  <div id="librarySyncModal" class="modal-overlay">
-    <div class="modal-container sync-modal-container">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>⚡</span> Self-Hosted Library Verification &amp; Repair Engine
-        </div>
-        <button class="modal-close" onclick="closeLibrarySyncModal()" title="Close">✕</button>
-      </div>
-      <div class="modal-body sync-modal-body">
-        <!-- Progress State -->
-        <div id="syncProgressState" class="sync-progress-state">
-          <div class="sync-spinner"></div>
-          <div class="sync-progress-text">Auditing physical files in <code>notes/</code> &amp; <code>notices/</code>...</div>
-        </div>
-
-        <!-- Results State -->
-        <div id="syncResultsState" class="sync-results-state" style="display: none;">
-          <!-- Summary Metric Cards -->
-          <div class="sync-stats-grid">
-            <div class="sync-stat-card">
-              <div class="sync-stat-num" id="syncTotalFiles">145</div>
-              <div class="sync-stat-label">Physical Files</div>
-              <div class="sync-stat-sub">100% Repository Hosted</div>
-            </div>
-            <div class="sync-stat-card sync-stat-success">
-              <div class="sync-stat-num" id="syncHealthyFiles">145</div>
-              <div class="sync-stat-label">Paths Healthy</div>
-              <div class="sync-stat-sub">Reachable &amp; Matched</div>
-            </div>
-            <div class="sync-stat-card sync-stat-warning">
-              <div class="sync-stat-num" id="syncRepairedFiles">0</div>
-              <div class="sync-stat-label">Path Errors Fixed</div>
-              <div class="sync-stat-sub">Associations Repaired</div>
-            </div>
-            <div class="sync-stat-card sync-stat-info">
-              <div class="sync-stat-num" id="syncAddedFiles">0</div>
-              <div class="sync-stat-label">New Files Added</div>
-              <div class="sync-stat-sub">Auto-Indexed to Catalog</div>
-            </div>
-          </div>
-
-          <!-- Dynamic Status Banner -->
-          <div id="syncStatusBanner" class="sync-status-banner"></div>
-
-          <!-- Audit Log Records -->
-          <div class="sync-logs-wrapper">
-            <div class="sync-logs-header">
-              <span>📋 Verification &amp; Repair Audit Details:</span>
-              <span id="syncTimestamp" class="sync-timestamp"></span>
-            </div>
-            <div id="syncLogsList" class="sync-logs-list"></div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer sync-modal-footer">
-        <button class="btn-action btn-cancel" onclick="closeLibrarySyncModal()">Close</button>
-        <button id="btnSyncApply" class="btn-action btn-download" onclick="applyLibrarySyncAndReload()">
-          🔄 Refresh &amp; Apply Changes
-        </button>
-      </div>
-    </div>
   </div>
 
   <!-- Toast Notification Pill -->
