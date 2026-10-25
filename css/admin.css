@@ -242,6 +242,48 @@
   color: #94a3b8;
 }
 
+.stat-card-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.stat-card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);
+  border-color: #fca5a5;
+}
+
+.admin-alert-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991c1c;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.08);
+}
+
+.admin-alert-banner:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.admin-alert-banner .alert-action {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #b91c1c;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 /* ==============================================
    ADMIN TABS
    ============================================== */

@@ -379,6 +379,14 @@ async function getMergedFolderCategoriesData() {
         const explicitHeader = note.folderHeader ? note.folderHeader.toUpperCase().replace(/\s+/g, '_') : null;
         if (explicitHeader && categories[explicitHeader]) {
           addNoteToCategory(explicitHeader, note, note.subFolder || 'all');
+          // Also link Question Papers & Model Papers to the respective trade subfolder
+          if (explicitHeader === 'QUESTION_PAPERS' || subject.id === 'sample-papers') {
+            if (classKey === '9th' || classKey === '10th') {
+              addNoteToCategory('DDEO', note, 'questions');
+            } else {
+              addNoteToCategory('JSD', note, 'questions');
+            }
+          }
         } else {
           // Default fallback by vocational trade
           if (classKey === '9th' || classKey === '10th') {

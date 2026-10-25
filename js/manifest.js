@@ -1280,33 +1280,6 @@ const PHYSICAL_FILE_MANIFEST = [
     "size": "7.8 MB",
     "bytes": 8205082,
     "type": "note"
-  },
-  {
-    "path": "./notices/Notice_142_Notes_Hosted_Library.pdf",
-    "filename": "Notice_142_Notes_Hosted_Library.pdf",
-    "folder": "NOTICES",
-    "subfolder": "all",
-    "size": "3 KB",
-    "bytes": 3087,
-    "type": "notice"
-  },
-  {
-    "path": "./notices/Notice_Android_PWA_Install_Guide.pdf",
-    "filename": "Notice_Android_PWA_Install_Guide.pdf",
-    "folder": "NOTICES",
-    "subfolder": "all",
-    "size": "3 KB",
-    "bytes": 3031,
-    "type": "notice"
-  },
-  {
-    "path": "./notices/Notice_Self_Hosted_Offline_Portal.pdf",
-    "filename": "Notice_Self_Hosted_Offline_Portal.pdf",
-    "folder": "NOTICES",
-    "subfolder": "all",
-    "size": "3 KB",
-    "bytes": 3044,
-    "type": "notice"
   }
 ];
 
@@ -1764,7 +1737,7 @@ if (typeof window !== 'undefined') {
       // 3. Show clean inline toast notification (no pop up!)
       const toastFn = (typeof showToast === 'function') ? showToast : ((typeof showAdminToast === 'function') ? showAdminToast : console.log);
       if (report.totalRepairs > 0 || report.totalAdded > 0) {
-        toastFn(`⚡ Auto-repaired ${report.totalRepairs} path(s) and added ${report.totalAdded} new note(s)!`);
+        toastFn(`⚡ Auto-repaired ${report.totalRepairs} file(s) and added ${report.totalAdded} new note(s)!`);
       } else {
         toastFn(`✅ All ${report.totalManifest} library files verified intact & healthy!`);
       }

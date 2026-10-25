@@ -164,7 +164,21 @@
           <div id="statNotices" class="stat-val">--</div>
           <div class="stat-meta">Poster updates</div>
         </div>
+        <div class="stat-card stat-card-clickable" onclick="switchTab('reportsTab')" title="Click to view student issue reports">
+          <div class="stat-label">Reported Issues</div>
+          <div id="statReportedIssues" class="stat-val" style="color: #dc2626;">0</div>
+          <div id="statReportedMeta" class="stat-meta">0 pending review</div>
+        </div>
       </section>
+
+      <!-- Pending Reports Alert Banner -->
+      <div id="pendingReportsAlert" class="admin-alert-banner" style="display: none;" onclick="switchTab('reportsTab')" title="Click to view and review student issue reports">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.25rem;">🚩</span>
+          <span><strong>Student Feedback:</strong> <span id="pendingReportsAlertCount">0</span> issue report(s) are awaiting review.</span>
+        </div>
+        <span class="alert-action">Review Issues →</span>
+      </div>
 
       <!-- Navigation Tabs -->
       <nav class="admin-tabs">
@@ -533,12 +547,15 @@
         <div class="card">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div>
-              <h3 class="card-title">Student &amp; Viewer Issue Reports</h3>
+              <h3 class="card-title">🚩 Student Issue Reports &amp; Viewer Feedback</h3>
               <p class="card-sub">Issues submitted by students from the PDF notes viewer regarding downloads, blank screens, or path errors.</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <button type="button" class="btn-primary text-sm" onclick="runLibraryRepair(false)" style="padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Automatically check notes and notices folders and fix associations">
                 ⚡ Check &amp; Repair Library
+              </button>
+              <button type="button" class="btn-secondary text-sm" onclick="handleAddSampleReport()" style="padding: 6px 12px;" title="Add a sample test report to verify system">
+                🧪 Add Test Report
               </button>
               <button type="button" class="btn-secondary text-sm" onclick="handleClearResolvedReports()" style="padding: 6px 12px;">
                 🗑️ Clear Resolved
@@ -546,10 +563,15 @@
             </div>
           </div>
 
-          <div style="padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="filter-tab-pill active" onclick="filterReports('all', this)">All Reports (<span id="countAllReports">0</span>)</button>
-            <button type="button" class="filter-tab-pill" onclick="filterReports('pending', this)">Pending (<span id="countPendingReports">0</span>)</button>
-            <button type="button" class="filter-tab-pill" onclick="filterReports('resolved', this)">Resolved (<span id="countResolvedReports">0</span>)</button>
+          <div style="padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="filter-tab-pill active" onclick="filterReports('all', this)">All Reports (<span id="countAllReports">0</span>)</button>
+              <button type="button" class="filter-tab-pill" onclick="filterReports('pending', this)">Pending (<span id="countPendingReports">0</span>)</button>
+              <button type="button" class="filter-tab-pill" onclick="filterReports('resolved', this)">Resolved (<span id="countResolvedReports">0</span>)</button>
+            </div>
+            <div style="flex: 1; max-width: 280px; min-width: 180px;">
+              <input type="text" id="reportsSearchInput" placeholder="🔍 Search reports..." oninput="handleSearchReports(this.value)" style="width: 100%; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.8rem; background: var(--bg-surface);">
+            </div>
           </div>
 
           <div id="reportsListContainer" style="padding: 16px 20px;">

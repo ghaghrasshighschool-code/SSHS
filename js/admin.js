@@ -694,10 +694,24 @@ async function loadDashboardData() {
   if (elHigh) elHigh.textContent = highNotes;
   if (elNotices) elNotices.textContent = posters.length;
 
-  // Update Pending Reports Badge
+  // Update Pending Reports Badge & Overview Stat
   const allIssues = (typeof getReportedIssues === 'function') ? getReportedIssues() : [];
   const pendingCount = allIssues.filter(i => i.status === 'pending').length;
+  const resolvedCount = allIssues.filter(i => i.status === 'resolved').length;
+
+  const elReported = document.getElementById('statReportedIssues');
+  const elReportedMeta = document.getElementById('statReportedMeta');
   const reportsBadge = document.getElementById('reportsBadge');
+  const alertBanner = document.getElementById('pendingReportsAlert');
+  const alertCount = document.getElementById('pendingReportsAlertCount');
+
+  if (elReported) elReported.textContent = pendingCount > 0 ? pendingCount : allIssues.length;
+  if (elReportedMeta) {
+    elReportedMeta.textContent = pendingCount > 0 
+      ? `${pendingCount} pending review (${resolvedCount} resolved)` 
+      : `${allIssues.length} total (${resolvedCount} resolved)`;
+  }
+
   if (reportsBadge) {
     if (pendingCount > 0) {
       reportsBadge.textContent = pendingCount;
@@ -706,6 +720,18 @@ async function loadDashboardData() {
       reportsBadge.style.display = 'none';
     }
   }
+
+  if (alertBanner) {
+    if (pendingCount > 0) {
+      if (alertCount) alertCount.textContent = pendingCount;
+      alertBanner.style.display = 'flex';
+    } else {
+      alertBanner.style.display = 'none';
+    }
+  }
+
+  // Pre-render reported issues
+  renderReportedIssues();
 }
 
 // ==============================================
@@ -1546,7 +1572,7 @@ async function downloadUpdatedDataJs() {
   }
 
   const jsContent = `// Educational Notes Database for SS+2 High School Ghaghra
-// Subject: Information Technology (IT / ITeS) - Vocational Code 402/802
+// Subject: Information Technology (IT / ITeS)
 // Generated via SSHS Admin Portal on ${new Date().toLocaleDateString()}
 
 const SCHOOL_CONFIG = ${JSON.stringify(SCHOOL_CONFIG, null, 2)};
@@ -1604,15 +1630,21 @@ function handleResetDefaults() {
 // STUDENT ISSUE REPORTS MANAGEMENT
 // ==============================================
 let currentReportsFilter = 'all';
+let currentReportsSearch = '';
 
 function filterReports(filter, btn) {
   currentReportsFilter = filter;
   document.querySelectorAll('.filter-tab-pill').forEach(el => el.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  renderReportedIssues(filter);
+  renderReportedIssues(filter, currentReportsSearch);
 }
 
-function renderReportedIssues(filter = currentReportsFilter) {
+function handleSearchReports(query) {
+  currentReportsSearch = (query || '').trim().toLowerCase();
+  renderReportedIssues(currentReportsFilter, currentReportsSearch);
+}
+
+function renderReportedIssues(filter = currentReportsFilter, search = currentReportsSearch) {
   const container = document.getElementById('reportsListContainer');
   if (!container) return;
 
@@ -1624,16 +1656,37 @@ function renderReportedIssues(filter = currentReportsFilter) {
   const countPending = document.getElementById('countPendingReports');
   const countResolved = document.getElementById('countResolvedReports');
   const badge = document.getElementById('reportsBadge');
+  const elReported = document.getElementById('statReportedIssues');
+  const elReportedMeta = document.getElementById('statReportedMeta');
+  const alertBanner = document.getElementById('pendingReportsAlert');
+  const alertCount = document.getElementById('pendingReportsAlertCount');
 
   if (countAll) countAll.textContent = allIssues.length;
   if (countPending) countPending.textContent = pendingCount;
   if (countResolved) countResolved.textContent = resolvedCount;
+
+  if (elReported) elReported.textContent = pendingCount > 0 ? pendingCount : allIssues.length;
+  if (elReportedMeta) {
+    elReportedMeta.textContent = pendingCount > 0
+      ? `${pendingCount} pending review (${resolvedCount} resolved)`
+      : `${allIssues.length} total (${resolvedCount} resolved)`;
+  }
+
   if (badge) {
     if (pendingCount > 0) {
       badge.textContent = pendingCount;
       badge.style.display = 'inline-block';
     } else {
       badge.style.display = 'none';
+    }
+  }
+
+  if (alertBanner) {
+    if (pendingCount > 0) {
+      if (alertCount) alertCount.textContent = pendingCount;
+      alertBanner.style.display = 'flex';
+    } else {
+      alertBanner.style.display = 'none';
     }
   }
 
@@ -1644,12 +1697,36 @@ function renderReportedIssues(filter = currentReportsFilter) {
     list = allIssues.filter(i => i.status === 'resolved');
   }
 
+  if (search) {
+    list = list.filter(item => {
+      const matchTitle = (item.noteTitle || '').toLowerCase().includes(search);
+      const matchUrl = (item.fileUrl || '').toLowerCase().includes(search);
+      const matchType = (item.issueType || '').toLowerCase().includes(search);
+      const matchDetails = (item.details || '').toLowerCase().includes(search);
+      const matchStudent = (item.studentName || '').toLowerCase().includes(search);
+      const matchClass = (item.studentClass || '').toLowerCase().includes(search);
+      return matchTitle || matchUrl || matchType || matchDetails || matchStudent || matchClass;
+    });
+  }
+
   if (list.length === 0) {
+    const isFiltered = (filter !== 'all' || Boolean(search));
     container.innerHTML = `
       <div style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
-        <div style="font-size: 2.5rem; margin-bottom: 12px;">🎉</div>
-        <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-main);">No Issue Reports Found</div>
-        <p style="font-size: 0.9rem; max-width: 420px; margin: 8px auto 0;">All study notes and notices are working properly. Any report submitted from the notes viewer will appear here for staff review.</p>
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">${isFiltered ? '🔍' : '🎉'}</div>
+        <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-main);">
+          ${isFiltered ? 'No Reports Match Your Search/Filter' : 'No Issue Reports Logged'}
+        </div>
+        <p style="font-size: 0.9rem; max-width: 460px; margin: 8px auto 16px;">
+          ${isFiltered 
+            ? 'Try clearing your search keyword or switching between All / Pending / Resolved filters.' 
+            : 'All notes and circulars are verified healthy. Reports submitted by students from the PDF viewer will appear here for staff review.'}
+        </p>
+        ${!isFiltered ? `
+          <button type="button" class="btn-secondary text-sm" onclick="handleAddSampleReport()" style="display: inline-flex; align-items: center; gap: 6px;">
+            🧪 Add Sample Test Report
+          </button>
+        ` : ''}
       </div>
     `;
     return;
@@ -1682,7 +1759,7 @@ function renderReportedIssues(filter = currentReportsFilter) {
           </div>
           <div class="report-actions-group">
             ${item.fileUrl ? `
-              <a href="${esc(item.fileUrl)}" target="_blank" class="btn-sm-action btn-test-link" title="Test Document in New Tab">
+              <a href="${esc(item.fileUrl)}" target="_blank" rel="noopener noreferrer" class="btn-sm-action btn-test-link" title="Test Document in New Tab">
                 🔗 Test File
               </a>
             ` : ''}
@@ -1697,7 +1774,12 @@ function renderReportedIssues(filter = currentReportsFilter) {
 
         <div class="report-note-info">
           <div class="report-note-title">📖 <strong>${esc(item.noteTitle)}</strong></div>
-          ${item.fileUrl ? `<div class="report-note-url text-mono">${esc(item.fileUrl)}</div>` : ''}
+          ${item.fileUrl ? `
+            <details style="margin-top: 4px; font-size: 0.72rem;">
+              <summary style="cursor: pointer; color: #2563eb; font-weight: 600;">📁 View File Association</summary>
+              <div class="report-note-url text-mono" style="margin-top: 4px;">${esc(item.fileUrl)}</div>
+            </details>
+          ` : ''}
         </div>
 
         <div class="report-user-details">
@@ -1711,6 +1793,25 @@ function renderReportedIssues(filter = currentReportsFilter) {
       </div>
     `;
   }).join('');
+}
+
+function handleAddSampleReport() {
+  const sampleNote = {
+    noteTitle: 'Class 9th: Basics Computer Handwritten Notes',
+    fileUrl: './notes/ALL CLASSES/Basics_Computer Handwritten Basics.pdf',
+    issueType: 'cannot_open',
+    studentName: 'Rahul Kumar',
+    studentClass: '9th',
+    details: 'The PDF viewer modal shows a blank screen on Android mobile Chrome browser.'
+  };
+
+  if (typeof saveReportedIssue === 'function') {
+    saveReportedIssue(sampleNote);
+    renderReportedIssues();
+    showToast('🧪 Sample student issue report added successfully!');
+  } else {
+    showToast('⚠️ Storage function not available.');
+  }
 }
 
 function handleToggleReportStatus(id) {
@@ -1812,7 +1913,9 @@ if (typeof window !== 'undefined') {
   window.checkPasswordStrengthUI = checkPasswordStrengthUI;
   window.loadAdminProfileData = loadAdminProfileData;
   window.filterReports = filterReports;
+  window.handleSearchReports = handleSearchReports;
   window.renderReportedIssues = renderReportedIssues;
+  window.handleAddSampleReport = handleAddSampleReport;
   window.handleToggleReportStatus = handleToggleReportStatus;
   window.handleDeleteReport = handleDeleteReport;
   window.handleClearResolvedReports = handleClearResolvedReports;

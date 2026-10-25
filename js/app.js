@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await reloadAllData();
   renderFolderCategories();
   renderPosters();
+  renderMarqueeTicker();
   setupNetworkListeners();
   setupSearch();
 });
@@ -47,6 +48,7 @@ window.addEventListener('focus', async () => {
   await reloadAllData();
   renderFolderCategories();
   renderPosters();
+  renderMarqueeTicker();
   if (notesScreen && notesScreen.classList.contains('active')) {
     renderNotes();
   }
@@ -80,6 +82,10 @@ async function reloadAllData() {
     }
     if (typeof FOLDER_CATEGORIES_CONFIG !== 'undefined') {
       appFolderData = FOLDER_CATEGORIES_CONFIG;
+    }
+  } finally {
+    if (typeof renderMarqueeTicker === 'function') {
+      renderMarqueeTicker();
     }
   }
 }
@@ -142,6 +148,17 @@ function renderPosters() {
     ? getMergedPostersData() 
     : ((typeof window !== 'undefined' && window.POSTERS_DATA) ? window.POSTERS_DATA : (typeof POSTERS_DATA !== 'undefined' ? POSTERS_DATA : []));
 
+  if (!posters || posters.length === 0) {
+    posterContainer.innerHTML = `
+      <div class="empty-state" style="padding: 24px 16px; margin: 0 auto; grid-column: 1 / -1; text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 6px;">📢</div>
+        <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">No Active Notices Posted</div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; max-width: 440px; margin-left: auto; margin-right: auto;">Official school circulars, exam schedules, and notices will appear here when published by the administration.</p>
+      </div>
+    `;
+    return;
+  }
+
   posterContainer.innerHTML = posters.map(p => {
     const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
     const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
@@ -172,6 +189,123 @@ function renderPosters() {
       </div>
     `;
   }).join('');
+}
+
+// Render Running Marquee Live Ticker (Notices & New Notes)
+function renderMarqueeTicker() {
+  const track = document.getElementById('marqueeTrack');
+  if (!track) return;
+
+  const esc = (typeof Security !== 'undefined') ? Security.escapeHtml : (s => s);
+  const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
+
+  const items = [];
+
+  // 1. Live Active Notices / Circulars (from storage or data.js)
+  const posters = (typeof getMergedPostersData === 'function') 
+    ? getMergedPostersData() 
+    : ((typeof window !== 'undefined' && window.POSTERS_DATA) ? window.POSTERS_DATA : (typeof POSTERS_DATA !== 'undefined' ? POSTERS_DATA : []));
+
+  if (Array.isArray(posters) && posters.length > 0) {
+    posters.forEach(p => {
+      const hasFile = p.fileUrl && p.fileUrl.trim() !== '';
+      const safeUrl = hasFile ? sanitizeUrl(p.fileUrl) : '';
+      const clickAttr = hasFile 
+        ? `onclick="openPdfViewer('${safeUrl}', '${esc(p.title)}')" style="cursor: pointer;" title="Click to view notice circular"`
+        : '';
+      items.push({
+        type: 'notice',
+        badge: esc(p.tag || 'NOTICE'),
+        icon: esc(p.icon || '📢'),
+        text: `<strong>${esc(p.title)}:</strong> ${esc(p.subtitle || 'Official School Notice')}`,
+        actionAttr: clickAttr
+      });
+    });
+  }
+
+  // 2. Custom Uploaded Notes (most recently added via Admin)
+  const customNotes = (typeof getCustomNotes === 'function') ? getCustomNotes() : [];
+  if (Array.isArray(customNotes) && customNotes.length > 0) {
+    customNotes.slice(-3).reverse().forEach(n => {
+      const safeId = esc(String(n.id));
+      items.push({
+        type: 'new-note',
+        badge: 'NEW NOTE',
+        icon: '✨',
+        text: `<strong>${esc(n.title)}</strong> (${esc(n.classKey ? 'Class ' + n.classKey : 'IT')} • Recently Uploaded)`,
+        actionAttr: `onclick="handleViewNote('${safeId}')" style="cursor: pointer;" title="Click to view note"`
+      });
+    });
+  }
+
+  // 3. Dynamic Curriculum & Study Highlights
+  items.push({
+    type: 'curriculum',
+    badge: '142 NOTES READY',
+    icon: '⚡',
+    text: `<strong>100% Self-Hosted Library:</strong> All 142 notes, textbooks and syllabus units active!`,
+    actionAttr: `onclick="window.scrollTo({top: 420, behavior: 'smooth'})" style="cursor: pointer;" title="Explore notes library"`
+  });
+
+  items.push({
+    type: 'ddeo',
+    badge: 'DDEO • 9th & 10th',
+    icon: '💻',
+    text: `<strong>LibreOffice Writer & Calc:</strong> Full chapter notes, formulas and practical shortcut keys!`,
+    actionAttr: `onclick="selectFolderCategory('DDEO', 'all')" style="cursor: pointer;" title="Open DDEO Notes"`
+  });
+
+  items.push({
+    type: 'jsd',
+    badge: 'JSD • 11th & 12th',
+    icon: '🐍',
+    text: `<strong>Python & MySQL:</strong> OOPs, Computer Networks, Boolean Logic & Database notes ready!`,
+    actionAttr: `onclick="selectFolderCategory('JSD', 'all')" style="cursor: pointer;" title="Open JSD Notes"`
+  });
+
+  items.push({
+    type: 'html',
+    badge: 'HTML & WEB',
+    icon: '🌐',
+    text: `<strong>Web Design Series:</strong> 10 comprehensive handwritten HTML tutorial chapters ready!`,
+    actionAttr: `onclick="selectFolderCategory('HTML_NOTES', 'all')" style="cursor: pointer;" title="Open HTML Notes"`
+  });
+
+  items.push({
+    type: 'questions',
+    badge: 'QUESTION BANKS',
+    icon: '📋',
+    text: `<strong>JAC Board Papers:</strong> Solved model question papers & previous year question banks!`,
+    actionAttr: `onclick="selectFolderCategory('QUESTION_PAPERS', 'all')" style="cursor: pointer;" title="Open Question Papers"`
+  });
+
+  items.push({
+    type: 'offline',
+    badge: '100% OFFLINE',
+    icon: '📲',
+    text: `<strong>Study Without Internet:</strong> Tap 'Install App' or 'How To' to study offline on Android!`,
+    actionAttr: `onclick="openInstallGuide()" style="cursor: pointer;" title="View Android Install Guide"`
+  });
+
+  const renderItemSet = () => items.map(item => `
+    <div class="marquee-item marquee-item-${item.type}" ${item.actionAttr || ''}>
+      <span class="marquee-pill marquee-pill-${item.type}">
+        <span class="marquee-item-icon">${item.icon}</span>
+        <span class="marquee-item-badge">${item.badge}</span>
+      </span>
+      <span class="marquee-item-text">${item.text}</span>
+    </div>
+    <span class="marquee-sep" aria-hidden="true">✦</span>
+  `).join('');
+
+  track.innerHTML = `
+    <div class="marquee-track-inner marquee-track-primary">
+      ${renderItemSet()}
+    </div>
+    <div class="marquee-track-inner marquee-track-duplicate" aria-hidden="true">
+      ${renderItemSet()}
+    </div>
+  `;
 }
 
 // Select Folder Category (Primary: DDEO, JSD, BOOKS, HTML NOTES, ExtraS, ALL CLASSES)
@@ -411,18 +545,19 @@ function renderNotes() {
     const safeId = sanitizeFilename(n.id || `note-${idx}`);
     const isSyl = n.isSyllabus || (n.subjectId === 'syllabus') || (n.id && n.id.includes('syl'));
     const safeNoteKey = esc(String(n.id || idx));
+    const displayTitle = n.title || n.name || n.cleanTitle || 'Study Note';
 
     const headerTag = n.folderHeader || (n.classKey ? (['11th','12th'].includes(n.classKey) ? 'JSD' : 'DDEO') : 'IT/ITeS');
     const classDetail = n.classKey ? ` • Class ${n.classKey}` : (n.subjectName ? ` • ${n.subjectName}` : '');
 
     return `
     <div class="note-card ${isSyl ? 'syllabus-card' : ''}" style="--note-accent: ${esc(n.subjectColor || '#2563eb')};">
-      <div class="note-card-top">
+      <div class="note-card-top" onclick="handleViewNote('${safeNoteKey}')" title="Click to view ${esc(displayTitle)}">
         <div>
           <div style="font-size: 0.72rem; font-weight: 700; color: ${esc(n.subjectColor || '#2563eb')}; margin-bottom: 2px;">
             ${esc(n.subjectIcon || (currentMode === 'folder' ? '📁' : '💻'))} ${esc(headerTag)}${esc(classDetail)}
           </div>
-          <div class="note-title">${esc(n.title || 'Untitled Note')}</div>
+          <div class="note-title">${esc(displayTitle)}</div>
           <div class="note-hindi-title">${esc(n.hindiTitle || '')}</div>
         </div>
         <div class="badge-stack">
@@ -460,6 +595,12 @@ function handleViewNote(noteId) {
       if (note) break;
     }
   }
+  if (!note && typeof appFolderData !== 'undefined') {
+    for (const fk in appFolderData) {
+      const found = (appFolderData[fk].notes || []).find(n => String(n.id) === String(noteId));
+      if (found) { note = found; break; }
+    }
+  }
   if (!note && typeof window !== 'undefined' && window.CLASSES_DATA) {
     for (const ck in window.CLASSES_DATA) {
       for (const s of (window.CLASSES_DATA[ck].subjects || [])) {
@@ -476,13 +617,23 @@ function handleViewNote(noteId) {
 
   const sanitizeUrl = (typeof Security !== 'undefined') ? Security.sanitizeUrl : (u => u);
   const safeUrl = sanitizeUrl(note.fileUrl);
+  const noteTitle = note.title || note.name || note.cleanTitle || 'Study Note';
 
-  openPdfViewer(safeUrl, note.title);
+  openPdfViewer(safeUrl, noteTitle);
 }
 
 function handleDownloadClick(noteId) {
-  const note = currentNotesMap.get(String(noteId));
-  const title = note ? note.title : 'Study Note';
+  let note = currentNotesMap.get(String(noteId));
+  if (!note && typeof appClassesData !== 'undefined') {
+    for (const ck in appClassesData) {
+      for (const s of (appClassesData[ck].subjects || [])) {
+        const found = (s.notes || []).find(n => String(n.id) === String(noteId));
+        if (found) { note = found; break; }
+      }
+      if (note) break;
+    }
+  }
+  const title = note ? (note.title || note.name || note.cleanTitle || 'Study Note') : 'Study Note';
   trackDownload(title);
 }
 
@@ -498,15 +649,15 @@ function openPdfViewer(url, title) {
     return;
   }
 
-  const safeTitle = (typeof Security !== 'undefined') ? Security.escapeHtml(title) : (title || 'Study Note');
-  const safeFilename = sanitizeFilename(title || 'Study_Notes') + '.pdf';
+  const rawTitle = title || 'Study Note';
+  const safeFilename = sanitizeFilename(rawTitle) + '.pdf';
 
   // Store active viewing note details for issue reporting
   const activeClassStr = (typeof currentClass !== 'undefined' && currentClass) ? currentClass : '9th';
   window.currentViewingNote = {
     url: safeFrameUrl,
-    title: safeTitle,
-    rawTitle: title || 'Study Note',
+    title: rawTitle,
+    rawTitle: rawTitle,
     activeClass: activeClassStr
   };
 
@@ -515,9 +666,19 @@ function openPdfViewer(url, title) {
   const elFrame = document.getElementById('modalFrame');
   const elDownload = document.getElementById('modalDownloadBtn');
   const elExternalLink = document.getElementById('modalExternalLink');
+  const elDirectLink = document.getElementById('modalDirectLink');
 
-  if (elTitle) elTitle.textContent = safeTitle;
-  if (elFrame) elFrame.src = safeFrameUrl;
+  // Set plain text so slashes, ampersands and special characters display naturally
+  if (elTitle) elTitle.textContent = rawTitle;
+
+  if (elFrame) {
+    elFrame.removeAttribute('loading'); // Ensure no lazy-loading blocker
+    elFrame.src = safeFrameUrl;
+  }
+
+  if (elDirectLink) {
+    elDirectLink.href = safeFrameUrl;
+  }
 
   if (elExternalLink) {
     elExternalLink.href = safeFrameUrl;
@@ -729,4 +890,5 @@ if (typeof window !== 'undefined') {
   window.closeReportModal = closeReportModal;
   window.handleReportSubmit = handleReportSubmit;
   window.sendReportViaEmail = sendReportViaEmail;
+  window.renderMarqueeTicker = renderMarqueeTicker;
 }

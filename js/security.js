@@ -18,7 +18,7 @@ const Security = {
   // 2. Strict URL Protocol Sanitizer (Prevents javascript:, data:text/html, and open redirects)
   sanitizeUrl(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return 'about:blank';
-    const trimmed = rawUrl.trim();
+    let trimmed = rawUrl.trim();
 
     // Allow safe relative paths
     if (trimmed.startsWith('./') || trimmed.startsWith('/') || trimmed.startsWith('notes/') || trimmed.startsWith('notices/')) {
@@ -28,7 +28,12 @@ const Security = {
         return 'about:blank';
       }
       try {
-        trimmed = decodeURI(trimmed);
+        // Decode repeatedly until fully decoded so we never double-encode %20 to %2520
+        while (trimmed.includes('%')) {
+          const dec = decodeURIComponent(trimmed);
+          if (dec === trimmed) break;
+          trimmed = dec;
+        }
       } catch (e) {}
       return encodeURI(trimmed);
     }
@@ -165,10 +170,10 @@ const Security = {
     } else if (/(?:class|cl|std|grade)?[ _-]*9(?:th)?(?=[^0-9]|$)|(?:\b|_)ix(?=[^a-z]|$)/i.test(s)) {
       classKey = '9th';
     } else if (s.includes('jsd')) {
-      // Junior Software Developer (JSD - Code 802) is senior secondary (Classes 11 & 12)
+      // Junior Software Developer (JSD) is senior secondary (Classes 11 & 12)
       classKey = '11th';
     } else if (s.includes('ddeo')) {
-      // Domestic Data Entry Operator (DDEO - Code 402) is secondary (Classes 9 & 10)
+      // Domestic Data Entry Operator (DDEO) is secondary (Classes 9 & 10)
       classKey = '10th';
     }
 
@@ -207,7 +212,13 @@ const Security = {
       .trim();
 
     // Check if filename had very little info, enrich it from folder context
-    if (!clean || clean.length < 3) {
+    if (clean.toLowerCase() === 'os') {
+      clean = `Class ${classKey} Operating System (OS) Complete Notes`;
+    } else if (clean.toLowerCase() === 'db' || clean.toLowerCase() === 'dbms') {
+      clean = `Class ${classKey} Database Management Systems (RDBMS)`;
+    } else if (clean.toLowerCase() === 'html') {
+      clean = `Class ${classKey} HTML5 & Web Development Notes`;
+    } else if (!clean || clean.length < 2) {
       if (s.includes('html')) {
         clean = `Class ${classKey} HTML & Web Applications Notes`;
       } else if (s.includes('ddeo')) {

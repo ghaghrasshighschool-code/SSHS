@@ -1,5 +1,5 @@
 // Educational Notes Database for SS+2 High School Ghaghra
-// Dedicated Subject: Information Technology (IT / ITeS) - Vocational Code 402/802 for Classes 9th to 12th
+// Dedicated Subject: Information Technology (IT / ITeS) for Classes 9th to 12th
 // 100% Self-Hosted Study Library: All 142 PDF files are stored directly within the website code repository under ./notes/
 
 const SCHOOL_CONFIG = {
@@ -8,50 +8,19 @@ const SCHOOL_CONFIG = {
   "subTitle": "IT / ITeS Vocational Learning & Notes Portal",
   "session": "Academic Session 2025 - 2026",
   "location": "Ghaghra, Gumla, Jharkhand",
-  "subjectName": "Information Technology (IT/ITeS) - Sub Code 402/802",
+  "subjectName": "Information Technology (IT / ITeS)",
   "helpline": "support@sshsghaghra.edu.in"
 };
 
 // Posters / Notices shown in the bottom section of Page 1
-const POSTERS_DATA = [
-  {
-    "id": 1,
-    "tag": "140+ Study Notes",
-    "badgeColor": "bg-red-500",
-    "title": "142 IT/ITeS Study Notes & Board Question Papers Hosted",
-    "subtitle": "Complete library of DDEO, JSD, HTML5, NCERT Textbooks, Question Banks and BSER & JAC Board Papers.",
-    "date": "Session 2025-26",
-    "icon": "📋",
-    "fileUrl": "./notices/Notice_142_Notes_Hosted_Library.pdf"
-  },
-  {
-    "id": 2,
-    "tag": "Offline Study",
-    "badgeColor": "bg-blue-500",
-    "title": "100% Self-Hosted - Stored Directly with Website Code",
-    "subtitle": "No external Google Drive needed. Every PDF note is stored locally in the website code and cached for offline access.",
-    "date": "Latest Curriculum",
-    "icon": "💻",
-    "fileUrl": "./notices/Notice_Self_Hosted_Offline_Portal.pdf"
-  },
-  {
-    "id": 3,
-    "tag": "PWA Ready",
-    "badgeColor": "bg-emerald-500",
-    "title": "Install as Android App for One-Tap Access",
-    "subtitle": "Tap Install App to save all notes directly to your phone. Study anytime, anywhere without internet data.",
-    "date": "Android PWA",
-    "icon": "📱",
-    "fileUrl": "./notices/Notice_Android_PWA_Install_Guide.pdf"
-  }
-];
+const POSTERS_DATA = [];
 
 // Primary Vocational Folder Headers (Self-Hosted Study Material Library)
 const FOLDER_CATEGORIES_CONFIG = {
   "DDEO": {
     "id": "DDEO",
     "name": "DDEO",
-    "fullName": "Domestic Data Entry Operator (Code 402)",
+    "fullName": "Domestic Data Entry Operator",
     "description": "Vocational IT/ITeS Curriculum for Classes 9th & 10th - LibreOffice Writer, Calc & Skills",
     "hindiName": "घरेलू डेटा प्रविष्टि ऑपरेटर (कक्षा 9 एवं 10)",
     "icon": "💻",
@@ -88,7 +57,7 @@ const FOLDER_CATEGORIES_CONFIG = {
   "JSD": {
     "id": "JSD",
     "name": "JSD",
-    "fullName": "Junior Software Developer (Code 802)",
+    "fullName": "Junior Software Developer",
     "description": "Vocational IT/ITeS Curriculum for Classes 11th & 12th - Python, SQL, Networks & Software Engg",
     "hindiName": "जूनियर सॉफ्टवेयर डेवलपर (कक्षा 11 एवं 12)",
     "icon": "⚡",
@@ -297,7 +266,7 @@ const CLASSES_DATA = {
   "9th": {
     "name": "Class 9th",
     "hindiName": "कक्षा 9वीं",
-    "description": "IT/ITeS (Code 402) - Foundation Level Vocational Curriculum & Notes",
+    "description": "IT/ITeS - Foundation Level Vocational Curriculum & Notes",
     "subjects": [
       {
         "id": "part-b",
@@ -555,8 +524,8 @@ const CLASSES_DATA = {
         "notes": [
           {
             "id": "sshs-136-class9-2024-ddeo-pdf",
-            "title": "Class 9th IT-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
-            "hindiTitle": "कक्षा 9 आईटी-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
+            "title": "Class 9th: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
+            "hindiTitle": "कक्षा 9: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
             "fileUrl": "./notes/QUESTION_BANKS/CLASS9_प्रश्न सह उत्तर संग्रह 2024 DDEO.pdf",
             "fileSize": "2.5 MB",
             "pages": 137,
@@ -583,8 +552,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-139-2024-ddeo-pdf",
-            "title": "Class 10th IT-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
-            "hindiTitle": "कक्षा 10 आईटी-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
+            "title": "Class 10th: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
+            "hindiTitle": "कक्षा 10: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 DDEO.pdf",
             "fileSize": "2.5 MB",
             "pages": 137,
@@ -597,8 +566,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-141-2024-jsd-mcq-p1l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P1L.pdf",
             "fileSize": "3.7 MB",
             "pages": 233,
@@ -611,8 +580,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-142-2024-jsd-mcq-p2l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P2L.pdf",
             "fileSize": "4.6 MB",
             "pages": 409,
@@ -884,7 +853,7 @@ const CLASSES_DATA = {
   "10th": {
     "name": "Class 10th",
     "hindiName": "कक्षा 10वीं",
-    "description": "IT/ITeS (Code 402) - Matriculation Board Examination Notes & Papers",
+    "description": "IT/ITeS - Matriculation Board Examination Notes & Papers",
     "subjects": [
       {
         "id": "part-b",
@@ -1422,8 +1391,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-139-2024-ddeo-pdf",
-            "title": "Class 10th IT-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
-            "hindiTitle": "कक्षा 10 आईटी-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
+            "title": "Class 10th: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
+            "hindiTitle": "कक्षा 10: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 DDEO.pdf",
             "fileSize": "2.5 MB",
             "pages": 137,
@@ -1436,8 +1405,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-141-2024-jsd-mcq-p1l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P1L.pdf",
             "fileSize": "3.7 MB",
             "pages": 233,
@@ -1450,8 +1419,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-142-2024-jsd-mcq-p2l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P2L.pdf",
             "fileSize": "4.6 MB",
             "pages": 409,
@@ -1709,7 +1678,7 @@ const CLASSES_DATA = {
   "11th": {
     "name": "Class 11th (+2)",
     "hindiName": "कक्षा 11वीं (+2)",
-    "description": "IT/ITeS (Code 802) - Intermediate 1st Year Vocational Curriculum",
+    "description": "IT/ITeS - Intermediate 1st Year Vocational Curriculum",
     "subjects": [
       {
         "id": "part-b",
@@ -2233,8 +2202,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-139-2024-ddeo-pdf",
-            "title": "Class 10th IT-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
-            "hindiTitle": "कक्षा 10 आईटी-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
+            "title": "Class 10th: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
+            "hindiTitle": "कक्षा 10: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 DDEO.pdf",
             "fileSize": "2.5 MB",
             "pages": 137,
@@ -2247,8 +2216,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-141-2024-jsd-mcq-p1l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P1L.pdf",
             "fileSize": "3.7 MB",
             "pages": 233,
@@ -2261,8 +2230,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-142-2024-jsd-mcq-p2l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P2L.pdf",
             "fileSize": "4.6 MB",
             "pages": 409,
@@ -2520,7 +2489,7 @@ const CLASSES_DATA = {
   "12th": {
     "name": "Class 12th (+2)",
     "hindiName": "कक्षा 12वीं (+2)",
-    "description": "IT/ITeS (Code 802) - Final Board Examination Notes, HTML & Papers",
+    "description": "IT/ITeS - Final Board Examination Notes, HTML & Papers",
     "subjects": [
       {
         "id": "part-b",
@@ -3206,8 +3175,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-139-2024-ddeo-pdf",
-            "title": "Class 10th IT-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
-            "hindiTitle": "कक्षा 10 आईटी-402: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
+            "title": "Class 10th: प्रश्न सह उत्तर संग्रह 2024 (DDEO Q&A Bank)",
+            "hindiTitle": "कक्षा 10: प्रश्न सह उत्तर संग्रह 2024 (DDEO)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 DDEO.pdf",
             "fileSize": "2.5 MB",
             "pages": 137,
@@ -3220,8 +3189,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-141-2024-jsd-mcq-p1l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 1)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 1)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P1L.pdf",
             "fileSize": "3.7 MB",
             "pages": 233,
@@ -3234,8 +3203,8 @@ const CLASSES_DATA = {
           },
           {
             "id": "sshs-142-2024-jsd-mcq-p2l-pdf",
-            "title": "Classes 11th-12th IT-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
-            "hindiTitle": "कक्षा 11-12 आईटी-802: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
+            "title": "Classes 11th-12th: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ Bank Part 2)",
+            "hindiTitle": "कक्षा 11-12: प्रश्न सह उत्तर संग्रह 2024 (JSD MCQ भाग 2)",
             "fileUrl": "./notes/QUESTION_BANKS/प्रश्न सह उत्तर संग्रह 2024 JSD MCQ P2L.pdf",
             "fileSize": "4.6 MB",
             "pages": 409,

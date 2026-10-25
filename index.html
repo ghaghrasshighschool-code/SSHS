@@ -45,9 +45,13 @@
             <h1 class="school-name">SS+2 HIGH SCHOOL GHAGHRA</h1>
             <div class="school-sub">एस.एस. +2 उच्च विद्यालय घाघरा (गुमला) • IT/ITeS Portal</div>
           </div>
+          <a href="./admin.html" class="header-admin-link" title="Admin Portal / शिक्षक पोर्टल" aria-label="Admin Portal">
+            <span class="admin-icon">🔐</span>
+            <span class="admin-text">Admin</span>
+          </a>
         </div>
         <div class="header-badges-row">
-          <span class="school-tagline">Vocational IT / ITeS (Code 402/802)</span>
+          <span class="school-tagline">Vocational Information Technology (IT / ITeS)</span>
           <span class="header-live-badge"><span class="pulse-dot"></span> 142 Notes Hosted • 100% Offline</span>
         </div>
       </div>
@@ -61,6 +65,10 @@
           <span class="page-title-badge">PORTAL</span>
           <div class="page-title">SS+2 GHAGHRA</div>
         </div>
+        <a href="./admin.html" class="header-admin-link header-admin-link-nav" title="Admin Portal / शिक्षक पोर्टल" aria-label="Admin Portal">
+          <span class="admin-icon">🔐</span>
+          <span class="admin-text">Admin</span>
+        </a>
       </div>
     </header>
 
@@ -68,6 +76,25 @@
          PAGE 1: HOME SCREEN (DIAMOND 4-QUADRANT & POSTER)
          ============================================== -->
     <main id="homeScreen" class="screen active">
+
+      <!-- Abstract Running Marquee: Dynamic Notices & New Notes Live Ticker -->
+      <section class="marquee-ticker-section" aria-label="Notices and New Notes Announcements">
+        <div class="marquee-ticker-card">
+          <!-- Abstract Angled Live Badge -->
+          <div class="marquee-badge">
+            <span class="marquee-badge-pulse"></span>
+            <span class="marquee-badge-icon">⚡</span>
+            <span class="marquee-badge-text">FLASH TIPS</span>
+          </div>
+
+          <!-- Seamless Infinite Marquee Window -->
+          <div class="marquee-window" id="marqueeWindow">
+            <div class="marquee-track" id="marqueeTrack">
+              <!-- Dynamically populated by renderMarqueeTicker() in js/app.js -->
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- PWA Installation Prompt (Positioned Just Above Selecting Class) -->
       <div id="pwaInstallPrompt" class="pwa-install-prompt">
@@ -78,9 +105,14 @@
             <div class="pwa-prompt-desc">One-tap Android PWA • Study 142 notes offline without data</div>
           </div>
         </div>
-        <button id="pwaPromptBtn" class="btn-pwa-prompt" onclick="triggerPwaInstall()">
-          <span>⬇️</span> Install App
-        </button>
+        <div class="pwa-prompt-actions">
+          <button id="pwaPromptBtn" class="btn-pwa-prompt" onclick="triggerPwaInstall()">
+            <span>⬇️</span> Install App
+          </button>
+          <button type="button" class="btn-pwa-howto" onclick="openInstallGuide()" title="How to Install App on Android (with pictures)">
+            <span>📖</span> How To
+          </button>
+        </div>
       </div>
 
       <!-- 1. Class Selection Section (Diamond 4-Quadrant Selector) -->
@@ -89,9 +121,6 @@
           <div class="selector-instruction">
             <span>🎯</span> Select Your Class / कक्षा चुनें
           </div>
-          <button class="install-pill-btn" onclick="triggerPwaInstall()" title="Install App on Phone">
-            📲 Install PWA
-          </button>
         </div>
 
         <div class="diamond-container">
@@ -138,7 +167,7 @@
                 <title>Class 9th IT/ITeS Notes & Syllabus</title>
               </path>
               <text x="104" y="96" class="quadrant-label">9th</text>
-              <text x="104" y="116" class="quadrant-sublabel">DDEO • 402</text>
+              <text x="104" y="116" class="quadrant-sublabel">DDEO</text>
             </g>
 
             <!-- Quadrant 2: 10th (Top-Right) -->
@@ -147,7 +176,7 @@
                 <title>Class 10th IT/ITeS Notes & Syllabus</title>
               </path>
               <text x="196" y="96" class="quadrant-label">10th</text>
-              <text x="196" y="116" class="quadrant-sublabel">DDEO • 402</text>
+              <text x="196" y="116" class="quadrant-sublabel">DDEO</text>
             </g>
 
             <!-- Quadrant 3: 11th (Bottom-Left) -->
@@ -156,7 +185,7 @@
                 <title>Class 11th IT/ITeS Notes & Syllabus</title>
               </path>
               <text x="104" y="196" class="quadrant-label">11th</text>
-              <text x="104" y="216" class="quadrant-sublabel">JSD • 802</text>
+              <text x="104" y="216" class="quadrant-sublabel">JSD</text>
             </g>
 
             <!-- Quadrant 4: 12th (Bottom-Right) -->
@@ -165,7 +194,7 @@
                 <title>Class 12th IT/ITeS Notes & Syllabus</title>
               </path>
               <text x="196" y="196" class="quadrant-label">12th</text>
-              <text x="196" y="216" class="quadrant-sublabel">JSD • 802</text>
+              <text x="196" y="216" class="quadrant-sublabel">JSD</text>
             </g>
 
             <!-- Dividing Cross Lines -->
@@ -183,30 +212,30 @@
         <div class="class-pill-grid">
           <button class="class-pill-btn class-pill-9" onclick="selectClass('9th')">
             <span class="class-pill-num">Class 9th</span>
-            <span class="class-pill-sub">DDEO • 402</span>
+            <span class="class-pill-sub">DDEO</span>
             <span class="class-pill-count">38 Notes</span>
           </button>
           <button class="class-pill-btn class-pill-10" onclick="selectClass('10th')">
             <span class="class-pill-num">Class 10th</span>
-            <span class="class-pill-sub">DDEO • 402</span>
+            <span class="class-pill-sub">DDEO</span>
             <span class="class-pill-count">55 Notes</span>
           </button>
           <button class="class-pill-btn class-pill-11" onclick="selectClass('11th')">
             <span class="class-pill-num">Class 11th</span>
-            <span class="class-pill-sub">JSD • 802</span>
+            <span class="class-pill-sub">JSD</span>
             <span class="class-pill-count">54 Notes</span>
           </button>
           <button class="class-pill-btn class-pill-12" onclick="selectClass('12th')">
             <span class="class-pill-num">Class 12th</span>
-            <span class="class-pill-sub">JSD • 802</span>
+            <span class="class-pill-sub">JSD</span>
             <span class="class-pill-count">65 Notes</span>
           </button>
         </div>
       </section>
 
-      <!-- 1.5 Quick Library Auto-Repair Button Only (Repairs Automatically - No Popups) -->
-      <section class="library-repair-bar" aria-label="Library Health and Auto-Repair">
-        <button class="btn-library-repair" onclick="runLibraryRepair(false)" id="btnQuickRepair" title="Automatically check notes &amp; notices folders, fix path associations, and index new notes">
+      <!-- 1.5 Quick Library Auto-Repair Button (Admin Access in Admin Portal) -->
+      <section class="library-repair-bar" aria-label="Library Health and Auto-Repair" style="display: none;">
+        <button class="btn-library-repair" onclick="runLibraryRepair(false)" id="btnQuickRepair" title="Check &amp; Auto-Repair Library Files">
           <span class="btn-repair-icon">⚡</span>
           <span class="btn-repair-text">Check &amp; Auto-Repair Library Files</span>
         </button>
@@ -233,7 +262,7 @@
             </div>
             <div>
               <div class="folder-card-title">DDEO</div>
-              <div class="folder-card-fullname">Domestic Data Entry Operator (Code 402)</div>
+              <div class="folder-card-fullname">Domestic Data Entry Operator</div>
               <div class="folder-card-desc">Vocational IT/ITeS Curriculum for Classes 9th & 10th - LibreOffice Writer, Calc & Skills</div>
             </div>
             <div class="folder-subfolder-pills">
@@ -255,7 +284,7 @@
             </div>
             <div>
               <div class="folder-card-title">JSD</div>
-              <div class="folder-card-fullname">Junior Software Developer (Code 802)</div>
+              <div class="folder-card-fullname">Junior Software Developer</div>
               <div class="folder-card-desc">Vocational IT/ITeS Curriculum for Classes 11th & 12th - Python, SQL, Networks & Software Engg</div>
             </div>
             <div class="folder-subfolder-pills">
@@ -448,7 +477,7 @@
           SS+2 HIGH SCHOOL GHAGHRA • E-LEARNING PORTAL
         </div>
         <div class="footer-desc">
-          Vocational IT / ITeS Curriculum (Codes 402/802) • 142 Self-Hosted Digital Study Notes & Board Papers
+          Vocational IT / ITeS Curriculum • 142 Self-Hosted Digital Study Notes & Board Papers
         </div>
         <div class="footer-meta">
           <span>Academic Session 2025–26</span> • <span>Ghaghra, Gumla, Jharkhand</span>
@@ -482,7 +511,7 @@
             ↗️ Open in New Tab
           </a>
         </div>
-        <iframe id="modalFrame" class="pdf-frame" src="about:blank" loading="lazy"></iframe>
+        <iframe id="modalFrame" class="pdf-frame" src="about:blank" loading="eager" title="PDF Document Viewer"></iframe>
       </div>
       <div class="modal-footer">
         <button class="btn-action btn-report-issue" onclick="openReportModal()" title="Report an issue with this note">
@@ -518,11 +547,7 @@
           <div class="report-field-group">
             <label class="report-field-label">Document / Note Title:</label>
             <input type="text" id="reportNoteTitle" class="report-field-input text-bold" readonly>
-          </div>
-
-          <div class="report-field-group">
-            <label class="report-field-label">File Path / URL:</label>
-            <input type="text" id="reportNoteUrl" class="report-field-input text-mono" readonly>
+            <input type="hidden" id="reportNoteUrl">
           </div>
 
           <!-- Problem Type -->
@@ -578,33 +603,79 @@
     </div>
   </div>
 
-  <!-- PWA Install Guide Modal (For browsers needing manual 3-dots action) -->
+  <!-- PWA Install Guide Modal (Visual Illustrated Step-by-Step Process) -->
   <div id="installGuideModal" class="modal-overlay">
     <div class="modal-container pwa-guide-modal">
       <div class="modal-header">
-        <div class="modal-title">📲 Install App on Android</div>
+        <div class="modal-title">📲 How to Install on Android</div>
         <button class="modal-close" onclick="closeInstallGuide()" title="Close">✕</button>
       </div>
       <div class="pwa-guide-body">
-        <div class="guide-step">
-          <div class="step-num">1</div>
-          <div class="step-text">Open this portal in <strong>Google Chrome</strong> or your phone browser.</div>
+        <div class="pwa-guide-intro">
+          <span>💡</span> Install once to open and study all 142 notes offline anytime with zero mobile data.
         </div>
-        <div class="guide-step">
-          <div class="step-num">2</div>
-          <div class="step-text">Tap the <strong>three dots (⋮)</strong> menu icon at the top-right corner of Chrome.</div>
+
+        <!-- Step 1 Card -->
+        <div class="guide-step-card">
+          <div class="guide-step-header">
+            <div class="step-num">1</div>
+            <div class="step-title-group">
+              <div class="step-title">Tap Three Dots (⋮) Menu in Chrome</div>
+              <div class="step-desc">Open the portal in Google Chrome. At the top-right corner of your screen, tap the <strong>⋮ (three dots)</strong> menu icon.</div>
+            </div>
+          </div>
+          <div class="guide-step-img-wrap">
+            <img src="./img/pwa-step1-menu.svg" alt="Step 1: Tap the three dots menu icon at top-right of Chrome browser" class="guide-step-img" loading="lazy">
+          </div>
         </div>
-        <div class="guide-step">
-          <div class="step-num">3</div>
-          <div class="step-text">Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</div>
+
+        <!-- Step 2 Card -->
+        <div class="guide-step-card">
+          <div class="guide-step-header">
+            <div class="step-num">2</div>
+            <div class="step-title-group">
+              <div class="step-title">Select "Install app" or "Add to Home screen"</div>
+              <div class="step-desc">In the Chrome menu that opens, tap <strong>"Install app"</strong>. (If you don't see "Install app", tap <strong>"Add to Home screen"</strong>).</div>
+            </div>
+          </div>
+          <div class="guide-step-img-wrap">
+            <img src="./img/pwa-step2-install.svg" alt="Step 2: Tap Install app or Add to Home screen in Chrome menu" class="guide-step-img" loading="lazy">
+          </div>
         </div>
-        <div class="guide-step">
-          <div class="step-num">4</div>
-          <div class="step-text">Tap <strong>"Install"</strong>. The SSHS Notes App icon will be added to your home screen!</div>
+
+        <!-- Step 3 Card -->
+        <div class="guide-step-card">
+          <div class="guide-step-header">
+            <div class="step-num">3</div>
+            <div class="step-title-group">
+              <div class="step-title">Confirm by Tapping "Install"</div>
+              <div class="step-desc">A native Android confirmation prompt will appear on your phone screen. Tap the blue <strong>"Install"</strong> button.</div>
+            </div>
+          </div>
+          <div class="guide-step-img-wrap">
+            <img src="./img/pwa-step3-confirm.svg" alt="Step 3: Confirm by tapping Install on Android prompt" class="guide-step-img" loading="lazy">
+          </div>
+        </div>
+
+        <!-- Step 4 Card -->
+        <div class="guide-step-card">
+          <div class="guide-step-header">
+            <div class="step-num">4</div>
+            <div class="step-title-group">
+              <div class="step-title">Done! Launch 100% Offline from Home Screen</div>
+              <div class="step-desc">The <strong>SSHS Notes</strong> icon 🎓 is now on your phone home screen. Tap it anytime to study even without mobile internet!</div>
+            </div>
+          </div>
+          <div class="guide-step-img-wrap">
+            <img src="./img/pwa-step4-success.svg" alt="Step 4: App icon ready on phone home screen" class="guide-step-img" loading="lazy">
+          </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-action btn-download w-full" onclick="closeInstallGuide()">Got It!</button>
+      <div class="modal-footer" style="display: flex; gap: 8px;">
+        <button class="btn-action btn-view" onclick="closeInstallGuide()" style="flex: 1;">Close</button>
+        <button class="btn-action btn-download" onclick="closeInstallGuide(); triggerPwaInstall();" style="flex: 2;">
+          <span>📲</span> Install App Now
+        </button>
       </div>
     </div>
   </div>
